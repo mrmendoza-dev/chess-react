@@ -1,0 +1,36 @@
+
+{
+  "name": "Chess",
+  "short_name": "Chess",
+  "description": "Chess",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "theme_color": "#18181B",
+  "background_color": "#18181B",
+  "display": "standalone",
+  "orientation": "any",
+  "categories": ["Chess"],
+  "shortcuts": [
+    {
+      "name": "Shortcut_Name",
+      "short_name": "Shortcut_Short_Name",
+      "description": "Shortcut_Description",
+      "url": "/Shortcut_URL",
+      "icons": [{ "src": "/icons/Shortcut_Icon.png", "sizes": "96x96" }]
+    }
+  ]
+}
