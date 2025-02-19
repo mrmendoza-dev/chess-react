@@ -261,3 +261,125 @@ export const getMoveNotation = (move: any) => {
 
   return `${pieceSymbol}${from}${captureNotation}${to}`;
 };
+
+
+
+
+// Add these to utils/chess.ts
+
+// Helper to find a king's position
+export const findKing = (board: (Piece | null)[], color: PieceColor): number => {
+  return board.findIndex(
+    (piece) => piece?.type === 'king' && piece.color === color
+  );
+};
+
+// Check if a position is under attack by the opposite color
+export const isSquareUnderAttack = (
+  board: (Piece | null)[],
+  position: number,
+  attackingColor: PieceColor
+): boolean => {
+  // Check every square on the board
+  for (let i = 0; i < 64; i++) {
+    const piece = board[i];
+    if (piece && piece.color === attackingColor) {
+      // If an enemy piece can move to this position, the square is under attack
+      if (isValidMove(board, i, position)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+// Check if the given color is in check
+export const isInCheck = (
+  board: (Piece | null)[],
+  color: PieceColor
+): boolean => {
+  const kingPosition = findKing(board, color);
+  const oppositeColor = color === 'white' ? 'black' : 'white';
+  
+  return isSquareUnderAttack(board, kingPosition, oppositeColor);
+};
+
+// Simulate a move and check if it results in self-check
+export const wouldMoveResultInCheck = (
+  board: (Piece | null)[],
+  from: number,
+  to: number,
+  color: PieceColor
+): boolean => {
+  // Create a copy of the board
+  const tempBoard = [...board];
+  
+  // Make the move on the temporary board
+  tempBoard[to] = tempBoard[from];
+  tempBoard[from] = null;
+  
+  // Check if the move results in check
+  return isInCheck(tempBoard, color);
+};
+
+// Check if the given color is in checkmate
+export const isInCheckmate = (
+  board: (Piece | null)[],
+  color: PieceColor
+): boolean => {
+  // If not in check, can't be in checkmate 
+  if (!isInCheck(board, color)) {
+    return false;
+  }
+
+  // Check every piece of the current color
+  for (let from = 0; from < 64; from++) {
+    const piece = board[from];
+    if (piece && piece.color === color) {
+      // Try every possible destination
+      for (let to = 0; to < 64; to++) {
+        // If move is valid and doesn't result in check
+        if (
+          isValidMove(board, from, to) &&
+          !wouldMoveResultInCheck(board, from, to, color)
+        ) {
+          // Found a legal move, not checkmate
+          return false;
+        }
+      }
+    }
+  }
+  
+  // No legal moves found, it's checkmate
+  return true;
+};
+
+// Check if the position is a stalemate
+export const isStalemate = (
+  board: (Piece | null)[],
+  color: PieceColor
+): boolean => {
+  // If in check, it's not stalemate
+  if (isInCheck(board, color)) {
+    return false;
+  }
+
+  // Check if any legal moves exist
+  for (let from = 0; from < 64; from++) {
+    const piece = board[from];
+    if (piece && piece.color === color) {
+      for (let to = 0; to < 64; to++) {
+        if (
+          isValidMove(board, from, to) &&
+          !wouldMoveResultInCheck(board, from, to, color)
+        ) {
+          // Found a legal move, not stalemate
+          return false;
+        }
+      }
+    }
+  }
+  
+  // No legal moves found, it's stalemate
+  return true;
+};

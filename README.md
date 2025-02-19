@@ -5,6 +5,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 ## Current Features
 
 ### Game Mechanics
+
 - Full chess board with proper piece movement validation
 - Turn-based gameplay (white/black alternating)
 - Move history tracking with standard chess notation
@@ -17,6 +18,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
   - King: Single square movements
 
 ### UI/UX
+
 - Responsive design that works on mobile and desktop
 - Dark/light mode support using Tailwind
 - Automatic board sizing based on viewport
@@ -26,6 +28,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - Reset game functionality
 
 ### Technical Features
+
 - React Context for state management
 - TypeScript for type safety
 - FontAwesome chess piece icons
@@ -34,18 +37,20 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 ## Planned Features (TODO)
 
 ### Short Term
+
 - [ ] Castling implementation
 - [ ] En passant capture for pawns
 - [ ] Pawn promotion
-- [ ] Check detection
-- [ ] Checkmate detection
-- [ ] Stalemate detection
-- [ ] Move validation considering check
+- [X] Check detection
+- [X] Checkmate detection
+- [X] Stalemate detection
+- [X] Move validation considering check
 - [ ] Highlight valid moves for selected piece
 - [ ] Add sound effects for moves
 - [ ] Add move animations
 
 ### Medium Term
+
 - [ ] Save game state to localStorage
 - [ ] Undo/redo moves
 - [ ] Export game in PGN format
@@ -58,6 +63,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [ ] Captured pieces display
 
 ### Long Term
+
 - [ ] Multiplayer support
 - [ ] AI opponent integration
 - [ ] Opening book/database

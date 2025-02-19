@@ -22,6 +22,7 @@ export const Chess = () => {
     gameStatus,
     handleSquareClick,
     resetGame,
+    moveHistory,
   } = useChess();
 
   const handleResize = () => {
@@ -52,6 +53,26 @@ export const Chess = () => {
         : "drop-shadow(2px 2px 2px rgba(255, 255, 255, 0.3))",
   });
 
+
+  const capitalize = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
+  const getStatusMessage = () => {
+    switch (gameStatus) {
+      case "check":
+        return `${capitalize(currentTurn)} is in check!`;
+      case "checkmate":
+        return `Checkmate! ${
+          currentTurn === "white" ? "Black" : "White"
+        } wins!`;
+      case "stalemate":
+        return "Stalemate! The game is a draw.";
+      default:
+        return `${capitalize(currentTurn)}'s turn`;
+    }
+  };
+
   return (
     <div className="bg-background flex flex-col px-4 py-6 w-full">
       <main className="flex-1 w-full flex flex-col items-center justify-center gap-4">
@@ -61,9 +82,12 @@ export const Chess = () => {
             <h2 className="text-base font-semibold mb-1 text-foreground">
               Game Status
             </h2>
+            <p className="text-base text-foreground">
+              {getStatusMessage()}
+            </p>
+
             <p className="text-sm text-muted-foreground">
-              Current Turn:{" "}
-              {currentTurn.charAt(0).toUpperCase() + currentTurn.slice(1)}
+              Turn {Math.floor(moveHistory.length / 2) + 1}
             </p>
           </div>
         </div>
@@ -124,13 +148,13 @@ export const Chess = () => {
         </div>
       </main>
 
-      <footer className="w-full bg-card shadow-lg border-border mt-4">
+      {/* <footer className="w-full bg-card shadow-lg border-border mt-4">
         <div className="max-w-7xl mx-auto p-3">
           <p className="text-center text-sm text-muted-foreground">
-            {gameStatus === "check" ? "Check!" : ""}
+            {getStatusMessage()}
           </p>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 };
@@ -146,3 +170,5 @@ const getPieceIcon = (type: Piece["type"]): IconDefinition => {
   };
   return icons[type];
 };
+
+
