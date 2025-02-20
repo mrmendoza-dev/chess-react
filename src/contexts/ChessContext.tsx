@@ -10,7 +10,8 @@ import {
   PieceColor,
   wouldMoveResultInCheck,
 } from "@/utils/chessUtility";
-import { createContext, ReactNode, useContext, useEffect } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { playSound } from "@/utils/soundUtility";
 
 export interface Move {
   piece: Piece;
@@ -53,6 +54,7 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     blackPlayer: "Computer",
     result: "*",
   });
+  const [soundTheme, setSoundTheme] = useState("standard");
 
   // Convert position number to chess notation
   const toChessNotation = (position: number) => {
@@ -113,12 +115,20 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
           Math.abs(position - selectedPiece) === 2
         ) {
           newBoard = handleCastling(board, selectedPiece, position);
+          playSound(soundTheme, "Castle");
         } else {
           // Handle regular moves
           newBoard = [...board];
           newBoard[position] = movingPiece;
           newBoard[selectedPiece] = null;
 
+          if (board[position]) {
+            // Capture
+            playSound(soundTheme, "Capture");
+          } else {
+            // Regular move
+            playSound(soundTheme, "Move");
+          }
           // Update piece position
           if (newBoard[position]) {
             newBoard[position]!.position = position;
@@ -137,6 +147,7 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
           timestamp: Date.now(),
         };
 
+
         // Calculate next turn's color
         const nextTurn = currentTurn === "white" ? "black" : "white";
 
@@ -145,10 +156,13 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
 
         if (isInCheckmate(newBoard, nextTurn)) {
           newGameStatus = "checkmate";
+            playSound(soundTheme, "Victory");
         } else if (isInCheck(newBoard, nextTurn)) {
           newGameStatus = "check";
+            playSound(soundTheme, "Check");
         } else if (isStalemate(newBoard, nextTurn)) {
           newGameStatus = "stalemate";
+            playSound(soundTheme, "Draw");
         }
 
         setGameState((prev: GameState) => ({

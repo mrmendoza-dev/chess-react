@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { capitalize } from "@/utils/formatUtility";
 import { useEffect, useState } from "react";
 import { CapturedPieces } from "./CapturedPieces";
+import React from "react";
 
 export const Chess = () => {
   const [boardSize, setBoardSize] = useState(0);
@@ -68,6 +69,7 @@ export const Chess = () => {
       default:
         return `${capitalize(currentTurn)}'s turn`;
     }
+
   };
 
   return (
@@ -112,7 +114,7 @@ export const Chess = () => {
 
                 {/* Board squares with rank labels on both sides */}
                 {[8, 7, 6, 5, 4, 3, 2, 1].map((rank, rankIndex) => (
-                  <>
+                  <React.Fragment key={`rank-${rank}`}>
                     {/* Left rank label */}
                     <div className="flex items-center justify-center text-xs text-muted-foreground w-6">
                       {rank}
@@ -159,7 +161,7 @@ export const Chess = () => {
                     <div className="flex items-center justify-center text-xs text-muted-foreground w-6">
                       {rank}
                     </div>
-                  </>
+                  </React.Fragment>
                 ))}
 
                 {/* Bottom row of file labels */}

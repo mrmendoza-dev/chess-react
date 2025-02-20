@@ -39,6 +39,7 @@ export const CapturedPieces = ({ moveHistory }: CapturedPiecesProps) => {
       (sum, piece) => sum + PIECE_VALUES[piece.type],
       0
     );
+  
 
     return blackValue - whiteValue;
   };

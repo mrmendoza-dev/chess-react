@@ -1,11 +1,10 @@
 import { useEffect, useRef } from "react";
 import { Move } from "@/contexts/ChessContext";
-import { getMoveNotation } from "@/utils/formatUtility";
+import { getMoveNotation } from "@/utils/pgnUtility";
 
 export const MoveHistory = ({ moveHistory }: { moveHistory: Move[] }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom when new moves are added
   useEffect(() => {
     if (scrollRef.current) {
       const element = scrollRef.current;
@@ -13,7 +12,6 @@ export const MoveHistory = ({ moveHistory }: { moveHistory: Move[] }) => {
     }
   }, [moveHistory]);
 
-  // Group moves into pairs (white and black moves)
   const turns = [];
   for (let i = 0; i < moveHistory.length; i += 2) {
     turns.push({

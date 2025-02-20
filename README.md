@@ -58,7 +58,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [ ] Board position analysis
 - [ ] Keyboard controls support
 - [ ] Accessibility improvements
-- [ ] Add sound effects for moves
+- [X] Add sound effects for moves
 - [ ] Add move animations
 
 ### Long Term
@@ -114,3 +114,4 @@ MIT License
 - Chess piece icons from FontAwesome
 - UI components from Shadcn/UI
 - Styling system from TailwindCSS
+- [Lila](https://github.com/lichess-org/lila) open source chess resources
