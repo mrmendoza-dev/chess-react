@@ -486,3 +486,173 @@ export const handleCastling = (
   
   return newBoard;
 };
+
+
+export const getValidMoves = (
+  board: (Piece | null)[],
+  position: number,
+  color: PieceColor
+): number[] => {
+  const piece = board[position];
+  if (!piece || piece.color !== color) return [];
+
+  const validMoves: number[] = [];
+
+  // Check all possible squares
+  for (let targetPos = 0; targetPos < 64; targetPos++) {
+    // Skip current position
+    if (targetPos === position) continue;
+
+    // Check if move is valid and wouldn't result in check
+    if (
+      isValidMove(board, position, targetPos) &&
+      !wouldMoveResultInCheck(board, position, targetPos, color)
+    ) {
+      validMoves.push(targetPos);
+    }
+  }
+
+  // Special case for castling
+  if (piece.type === "king" && !piece.hasMoved) {
+    // Kingside castling
+    if (isValidCastling(board, position, position + 2, color)) {
+      validMoves.push(position + 2);
+    }
+    // Queenside castling
+    if (isValidCastling(board, position, position - 2, color)) {
+      validMoves.push(position - 2);
+    }
+  }
+
+  return validMoves;
+};
+
+// Helper function to convert position to board coordinates
+export const positionToCoords = (position: number) => ({
+  row: Math.floor(position / 8),
+  col: position % 8,
+});
+
+// Helper function to get move description
+export const getMoveDescription = (
+  board: (Piece | null)[],
+  from: number,
+  to: number
+): string => {
+  const piece = board[from];
+  if (!piece) return "";
+
+  const fromCoords = positionToCoords(from);
+  const toCoords = positionToCoords(to);
+
+  // Special moves
+  if (piece.type === "king" && Math.abs(toCoords.col - fromCoords.col) === 2) {
+    return toCoords.col > fromCoords.col
+      ? "Kingside Castle"
+      : "Queenside Castle";
+  }
+
+  const targetPiece = board[to];
+  const moveType = targetPiece ? "Capture" : "Move";
+
+  return `${moveType} ${piece.type} to ${String.fromCharCode(
+    97 + toCoords.col
+  )}${8 - toCoords.row}`;
+};
+
+// Function to format moves for display
+export const formatValidMoves = (
+  board: (Piece | null)[],
+  position: number,
+  color: PieceColor
+): { position: number; description: string }[] => {
+  const validMoves = getValidMoves(board, position, color);
+
+  return validMoves.map((movePos) => ({
+    position: movePos,
+    description: getMoveDescription(board, position, movePos),
+  }));
+};
+
+
+
+export const getValidAttacks = (
+  board: (Piece | null)[],
+  position: number,
+  color: PieceColor
+): number[] => {
+  const piece = board[position];
+  if (!piece || piece.color !== color) return [];
+
+  const validAttacks: number[] = [];
+
+  // Check all possible squares
+  for (let targetPos = 0; targetPos < 64; targetPos++) {
+    // Skip current position
+    if (targetPos === position) continue;
+
+    const targetPiece = board[targetPos];
+
+    // Check if move is valid and targets an enemy piece
+    if (
+      isValidMove(board, position, targetPos) &&
+      targetPiece &&
+      targetPiece.color !== color
+    ) {
+      validAttacks.push(targetPos);
+    }
+  }
+
+  return validAttacks;
+};
+
+// Helper to get all pieces that can attack a specific position
+export const getPiecesThreateningSquare = (
+  board: (Piece | null)[],
+  targetPosition: number,
+  attackingColor: PieceColor
+): number[] => {
+  const threateningPieces: number[] = [];
+
+  for (let pos = 0; pos < 64; pos++) {
+    const piece = board[pos];
+    if (piece && piece.color === attackingColor) {
+      if (isValidMove(board, pos, targetPosition)) {
+        threateningPieces.push(pos);
+      }
+    }
+  }
+
+  return threateningPieces;
+};
+
+// Get all squares a piece can attack, including those blocked by friendly pieces
+export const getPotentialAttacks = (
+  board: (Piece | null)[],
+  position: number,
+  color: PieceColor
+): number[] => {
+  const piece = board[position];
+  if (!piece || piece.color !== color) return [];
+
+  const potentialAttacks: number[] = [];
+  const tempBoard = [...board];
+
+  // Temporarily remove friendly pieces to see full attack range
+  for (let i = 0; i < 64; i++) {
+    if (tempBoard[i]?.color === color && i !== position) {
+      tempBoard[i] = null;
+    }
+  }
+
+  // Check all possible squares
+  for (let targetPos = 0; targetPos < 64; targetPos++) {
+    if (targetPos === position) continue;
+
+    if (isValidMove(tempBoard, position, targetPos)) {
+      potentialAttacks.push(targetPos);
+    }
+  }
+
+  return potentialAttacks;
+};

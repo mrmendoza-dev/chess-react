@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { CapturedPieces } from "./CapturedPieces";
 import { ChessControls } from "./ChessControls";
 import React from "react";
+import clsx from "clsx";
 
 export const Chess = () => {
   const [boardSize, setBoardSize] = useState(0);
@@ -27,6 +28,12 @@ export const Chess = () => {
     handleSquareClick,
     resetGame,
     moveHistory,
+    validMoves,
+    validAttacks,
+    hoverPiece,
+    previewMoves,
+    previewAttacks,
+    handleSquareHover,
   } = useChess();
 
   const handleResize = () => {
@@ -108,21 +115,49 @@ export const Chess = () => {
                         <div
                           key={index}
                           onClick={() => handleSquareClick(index)}
-                          className={`
-                            ${
-                              isBlack
-                                ? "bg-gray-300 dark:bg-neutral-700"
-                                : "bg-gray-100 dark:bg-neutral-300"
-                            }
-                            ${
-                              selectedPiece === index
-                                ? "ring-4 ring-blue-500 z-10"
-                                : ""
-                            }
-                            aspect-square w-full hover:opacity-90 transition-opacity
-                            relative cursor-pointer
-                          `}
+                          onMouseEnter={() => handleSquareHover(index)}
+                          onMouseLeave={() => handleSquareHover(null)}
+                          className={clsx(
+                            // Base square styling
+                            "aspect-square w-full relative cursor-pointer transition-opacity hover:opacity-90",
+                            // Square color
+                            isBlack
+                              ? "bg-gray-300 dark:bg-neutral-700"
+                              : "bg-gray-100 dark:bg-neutral-300",
+                            // Selected piece highlight
+                            selectedPiece === index &&
+                              "ring-4 ring-blue-500 z-10"
+                          )}
                         >
+                          {/* Highlight layer - only show one based on priority */}
+                          {(() => {
+                            if (validAttacks?.includes(index)) {
+                              return (
+                                <div className="absolute inset-0 bg-red-500/50" />
+                              );
+                            }
+                            if (validMoves?.includes(index)) {
+                              return (
+                                <div className="absolute inset-0 bg-green-500/50" />
+                              );
+                            }
+                            if (selectedPiece === null) {
+                              // Only show previews if no piece is selected
+                              if (previewAttacks?.includes(index)) {
+                                return (
+                                  <div className="absolute inset-0 bg-purple-500/30" />
+                                );
+                              }
+                              if (previewMoves?.includes(index)) {
+                                return (
+                                  <div className="absolute inset-0 bg-yellow-500/30" />
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
+
+                          {/* Piece icon */}
                           {piece && (
                             <div className="absolute inset-0 flex items-center justify-center">
                               <FontAwesomeIcon
