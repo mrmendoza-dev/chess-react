@@ -13,6 +13,7 @@ import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { capitalize } from "@/utils/formatUtility";
 import { useEffect, useState } from "react";
+import { CapturedPieces } from "./CapturedPieces";
 
 export const Chess = () => {
   const [boardSize, setBoardSize] = useState(0);
@@ -89,6 +90,8 @@ export const Chess = () => {
         <div className="w-full max-w-4xl flex flex-col md:flex-row gap-4">
           {/* Chess Board Container */}
           <div id="chess-container" className="w-full">
+            <CapturedPieces moveHistory={moveHistory} />
+
             <div
               className="mx-auto bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-gray-200 dark:border-neutral-700 p-1"
               style={{ width: boardSize ? `${boardSize}px` : "100%" }}
@@ -97,8 +100,11 @@ export const Chess = () => {
               <div className="grid grid-cols-[auto_repeat(8,1fr)_auto] gap-1">
                 {/* Top row of file labels */}
                 <div className="w-6" />
-                {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(file => (
-                  <div key={`top-${file}`} className="flex justify-center text-xs text-muted-foreground">
+                {["a", "b", "c", "d", "e", "f", "g", "h"].map((file) => (
+                  <div
+                    key={`top-${file}`}
+                    className="flex justify-center text-xs text-muted-foreground"
+                  >
                     {file}
                   </div>
                 ))}
@@ -111,7 +117,7 @@ export const Chess = () => {
                     <div className="flex items-center justify-center text-xs text-muted-foreground w-6">
                       {rank}
                     </div>
-                    
+
                     {/* Board squares for this rank */}
                     {[0, 1, 2, 3, 4, 5, 6, 7].map((col) => {
                       const index = rankIndex * 8 + col;
@@ -123,8 +129,16 @@ export const Chess = () => {
                           key={index}
                           onClick={() => handleSquareClick(index)}
                           className={`
-                            ${isBlack ? "bg-gray-300 dark:bg-neutral-700" : "bg-gray-100 dark:bg-neutral-300"}
-                            ${selectedPiece === index ? "ring-4 ring-blue-500 z-10" : ""}
+                            ${
+                              isBlack
+                                ? "bg-gray-300 dark:bg-neutral-700"
+                                : "bg-gray-100 dark:bg-neutral-300"
+                            }
+                            ${
+                              selectedPiece === index
+                                ? "ring-4 ring-blue-500 z-10"
+                                : ""
+                            }
                             aspect-square w-full hover:opacity-90 transition-opacity
                             relative cursor-pointer
                           `}
@@ -150,16 +164,18 @@ export const Chess = () => {
 
                 {/* Bottom row of file labels */}
                 <div className="w-6" />
-                {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(file => (
-                  <div key={`bottom-${file}`} className="flex justify-center text-xs text-muted-foreground">
+                {["a", "b", "c", "d", "e", "f", "g", "h"].map((file) => (
+                  <div
+                    key={`bottom-${file}`}
+                    className="flex justify-center text-xs text-muted-foreground"
+                  >
                     {file}
                   </div>
                 ))}
                 <div className="w-6" />
               </div>
             </div>
-        </div>
-
+          </div>
         </div>
         {/* Controls Section */}
         <div className="w-full max-w-md">
@@ -172,7 +188,7 @@ export const Chess = () => {
   );
 };
 
-const getPieceIcon = (type: Piece["type"]): IconDefinition => {
+export const getPieceIcon = (type: Piece["type"]): IconDefinition => {
   const icons = {
     king: faChessKing,
     queen: faChessQueen,

@@ -46,7 +46,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [X] Stalemate detection
 - [X] Move validation considering check
 - [ ] Highlight valid moves for selected piece
-- [ ] Captured pieces display
+- [X] Captured pieces display
 
 ### Medium Term
 
