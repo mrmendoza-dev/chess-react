@@ -14,6 +14,7 @@ import {
   Piece,
   PieceColor,
   wouldMoveResultInCheck,
+  handleCastling,
 } from "@/utils/chess";
 
 interface Move {
@@ -76,35 +77,42 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     return `${pieceSymbol}${from}${captureNotation}${to}`;
   };
 
-  const handleSquareClick = (position: number) => {
-    const { board, selectedPiece, currentTurn, moveHistory } = gameState;
-    const piece = board[position];
+const handleSquareClick = (position: number) => {
+  const { board, selectedPiece, currentTurn, moveHistory } = gameState;
+  const piece = board[position];
 
-    // First click - selecting a piece
-    if (selectedPiece === null && piece?.color === currentTurn) {
-      setGameState((prev) => ({ ...prev, selectedPiece: position }));
+  // First click - selecting a piece
+  if (selectedPiece === null && piece?.color === currentTurn) {
+    setGameState((prev) => ({ ...prev, selectedPiece: position }));
+    return;
+  }
+
+  // Second click - attempting to move
+  if (selectedPiece !== null) {
+    const movingPiece = board[selectedPiece];
+
+    // Clicking the same square or invalid selection
+    if (!movingPiece || selectedPiece === position) {
+      setGameState((prev) => ({ ...prev, selectedPiece: null }));
       return;
     }
 
-    // Second click - attempting to move
-    if (selectedPiece !== null) {
-      const movingPiece = board[selectedPiece];
+    // Check if move is valid and wouldn't result in self-check
+    if (
+      isValidMove(board, selectedPiece, position) &&
+      !wouldMoveResultInCheck(board, selectedPiece, position, currentTurn)
+    ) {
+      let newBoard;
 
-      // Clicking the same square or invalid selection
-      if (!movingPiece || selectedPiece === position) {
-        setGameState((prev) => ({ ...prev, selectedPiece: null }));
-        return;
-      }
-
-      // Check if move is valid and wouldn't result in self-check
+      // Handle castling moves
       if (
-        isValidMove(board, selectedPiece, position) &&
-        !wouldMoveResultInCheck(board, selectedPiece, position, currentTurn)
+        movingPiece.type === "king" &&
+        Math.abs(position - selectedPiece) === 2
       ) {
-        const newBoard = [...board];
-        const capturedPiece = board[position];
-
-        // Make the move
+        newBoard = handleCastling(board, selectedPiece, position);
+      } else {
+        // Handle regular moves
+        newBoard = [...board];
         newBoard[position] = movingPiece;
         newBoard[selectedPiece] = null;
 
@@ -113,44 +121,47 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
           newBoard[position]!.position = position;
           newBoard[position]!.hasMoved = true;
         }
-
-        // Record the move
-        const move: Move = {
-          piece: movingPiece,
-          from: selectedPiece,
-          to: position,
-          captured: capturedPiece || undefined,
-          timestamp: Date.now(),
-        };
-
-        // Calculate next turn's color
-        const nextTurn = currentTurn === "white" ? "black" : "white";
-
-        // Check game status for the next player AFTER the move
-        let newGameStatus: GameState["gameStatus"] = "playing";
-
-        if (isInCheckmate(newBoard, nextTurn)) {
-          newGameStatus = "checkmate";
-        } else if (isInCheck(newBoard, nextTurn)) {
-          newGameStatus = "check";
-        } else if (isStalemate(newBoard, nextTurn)) {
-          newGameStatus = "stalemate";
-        }
-
-        setGameState((prev) => ({
-          ...prev,
-          board: newBoard,
-          selectedPiece: null,
-          currentTurn: nextTurn,
-          gameStatus: newGameStatus,
-          moveHistory: [...moveHistory, move],
-        }));
-      } else {
-        // Invalid move - just deselect the piece
-        setGameState((prev) => ({ ...prev, selectedPiece: null }));
       }
+
+      const capturedPiece = board[position];
+
+      // Record the move
+      const move: Move = {
+        piece: movingPiece,
+        from: selectedPiece,
+        to: position,
+        captured: capturedPiece || undefined,
+        timestamp: Date.now(),
+      };
+
+      // Calculate next turn's color
+      const nextTurn = currentTurn === "white" ? "black" : "white";
+
+      // Check game status for the next player AFTER the move
+      let newGameStatus: GameState["gameStatus"] = "playing";
+
+      if (isInCheckmate(newBoard, nextTurn)) {
+        newGameStatus = "checkmate";
+      } else if (isInCheck(newBoard, nextTurn)) {
+        newGameStatus = "check";
+      } else if (isStalemate(newBoard, nextTurn)) {
+        newGameStatus = "stalemate";
+      }
+
+      setGameState((prev) => ({
+        ...prev,
+        board: newBoard,
+        selectedPiece: null,
+        currentTurn: nextTurn,
+        gameStatus: newGameStatus,
+        moveHistory: [...moveHistory, move],
+      }));
+    } else {
+      // Invalid move - just deselect the piece
+      setGameState((prev) => ({ ...prev, selectedPiece: null }));
     }
-  };
+  }
+};
 
   useEffect(() => {
     const { board, currentTurn } = gameState;

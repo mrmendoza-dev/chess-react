@@ -225,18 +225,7 @@ const isValidQueenMove = (
   return isValidRookMove(board, from, to) || isValidBishopMove(board, from, to);
 };
 
-const isValidKingMove = (
-  board: (Piece | null)[],
-  from: number,
-  to: number
-): boolean => {
-  const fromRow = getRow(from);
-  const fromCol = getCol(from);
-  const toRow = getRow(to);
-  const toCol = getCol(to);
 
-  return Math.abs(toRow - fromRow) <= 1 && Math.abs(toCol - fromCol) <= 1;
-};
 
 export const toChessNotation = (position: number) => {
   const col = String.fromCharCode(97 + (position % 8)); // a-h
@@ -382,4 +371,140 @@ export const isStalemate = (
   
   // No legal moves found, it's stalemate
   return true;
+};
+
+// Add these to utils/chess.ts
+
+// Check if a castling move is valid
+const isValidCastling = (
+  board: (Piece | null)[],
+  from: number,
+  to: number,
+  color: PieceColor
+): boolean => {
+  const piece = board[from];
+  if (!piece || piece.type !== 'king' || piece.hasMoved) {
+    return false;
+  }
+
+  // Kingside castling
+  if (to === from + 2) {
+    const rook = board[from + 3];
+    if (!rook || rook.type !== 'rook' || rook.hasMoved) {
+      return false;
+    }
+    
+    // Check if path is clear
+    if (board[from + 1] || board[from + 2]) {
+      return false;
+    }
+    
+    // Check if king passes through check
+    if (
+      isSquareUnderAttack(board, from, color === 'white' ? 'black' : 'white') ||
+      isSquareUnderAttack(board, from + 1, color === 'white' ? 'black' : 'white') ||
+      isSquareUnderAttack(board, from + 2, color === 'white' ? 'black' : 'white')
+    ) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // Queenside castling
+  if (to === from - 2) {
+    const rook = board[from - 4];
+    if (!rook || rook.type !== 'rook' || rook.hasMoved) {
+      return false;
+    }
+    
+    // Check if path is clear
+    if (board[from - 1] || board[from - 2] || board[from - 3]) {
+      return false;
+    }
+    
+    // Check if king passes through check
+    if (
+      isSquareUnderAttack(board, from, color === 'white' ? 'black' : 'white') ||
+      isSquareUnderAttack(board, from - 1, color === 'white' ? 'black' : 'white') ||
+      isSquareUnderAttack(board, from - 2, color === 'white' ? 'black' : 'white')
+    ) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  return false;
+};
+
+// Update the isValidKingMove function
+export const isValidKingMove = (
+  board: (Piece | null)[],
+  from: number,
+  to: number
+): boolean => {
+  const piece = board[from];
+  if (!piece) return false;
+
+  const fromRow = getRow(from);
+  const fromCol = getCol(from);
+  const toRow = getRow(to);
+  const toCol = getCol(to);
+
+  // Normal king moves
+  if (Math.abs(toRow - fromRow) <= 1 && Math.abs(toCol - fromCol) <= 1) {
+    return true;
+  }
+
+  // Castling moves
+  if (fromRow === toRow && Math.abs(toCol - fromCol) === 2) {
+    return isValidCastling(board, from, to, piece.color);
+  }
+
+  return false;
+};
+
+// Add this to your ChessContext's handleSquareClick function:
+export const handleCastling = (
+  board: (Piece | null)[],
+  from: number,
+  to: number
+): (Piece | null)[] => {
+  const newBoard: any = [...board];
+  const king = board[from];
+
+  if (!king || king.type !== 'king') return newBoard;
+  
+  // Kingside castling
+  if (to === from + 2) {
+    // Move rook
+    newBoard[from + 1] = newBoard[from + 3];
+    newBoard[from + 3] = null;
+    if (newBoard[from + 1]) {
+      newBoard[from + 1].position = from + 1;
+      newBoard[from + 1].hasMoved = true;
+    }
+  }
+  
+  // Queenside castling
+  if (to === from - 2) {
+    // Move rook
+    newBoard[from - 1] = newBoard[from - 4];
+    newBoard[from - 4] = null;
+    if (newBoard[from - 1]) {
+      newBoard[from - 1].position = from - 1;
+      newBoard[from - 1].hasMoved = true;
+    }
+  }
+  
+  // Move king
+  newBoard[to] = newBoard[from];
+  newBoard[from] = null;
+  if (newBoard[to]) {
+    newBoard[to].position = to;
+    newBoard[to].hasMoved = true;
+  }
+  
+  return newBoard;
 };

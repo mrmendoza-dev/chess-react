@@ -38,7 +38,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 
 ### Short Term
 
-- [ ] Castling implementation
+- [X] Castling implementation
 - [ ] En passant capture for pawns
 - [ ] Pawn promotion
 - [X] Check detection
@@ -46,8 +46,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [X] Stalemate detection
 - [X] Move validation considering check
 - [ ] Highlight valid moves for selected piece
-- [ ] Add sound effects for moves
-- [ ] Add move animations
+- [ ] Captured pieces display
 
 ### Medium Term
 
@@ -60,7 +59,8 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [ ] Keyboard controls support
 - [ ] Accessibility improvements
 - [ ] Move confirmation dialog
-- [ ] Captured pieces display
+- [ ] Add sound effects for moves
+- [ ] Add move animations
 
 ### Long Term
 
