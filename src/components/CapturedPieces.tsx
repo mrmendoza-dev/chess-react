@@ -53,8 +53,7 @@ export const CapturedPieces = ({ moveHistory }: CapturedPiecesProps) => {
     );
 
     return (
-      <div className="flex flex-col items-start gap-2">
-        <div className="flex flex-wrap bg-gray-800 rounded-md p-2">
+        <div className="flex flex-wrap bg-gray-100 dark:bg-gray-800 rounded-md p-2">
           {sortedPieces.map((piece, index) => (
             <div
               key={`${piece.type}-${index}`}
@@ -76,16 +75,15 @@ export const CapturedPieces = ({ moveHistory }: CapturedPiecesProps) => {
           ))}
           {materialDiff >= 1 && (
             <div className="w-min text-sm ml-2 text-muted-foreground">
-              {color === "white" ? materialDiff : -materialDiff}
+              {color === "white" ? `+${materialDiff}` : `-${materialDiff}`}
             </div>
           )}
         </div>
-      </div>
     );
   };
 
   return (
-    <Card className="w-full max-w-lg mx-auto border-none rounded-none">
+    <Card className="w-full max-w-lg mx-auto border-none rounded-none shadow-none">
       <CardContent className="flex flex-row justify-between items-center gap-4 p-2">
         <CapturedPieceRow color="black" />
         <div className="border-t border-border" />

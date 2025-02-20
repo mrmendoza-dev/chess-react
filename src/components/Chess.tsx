@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { capitalize } from "@/utils/formatUtility";
 import { useEffect, useState } from "react";
 import { CapturedPieces } from "./CapturedPieces";
+import { ChessControls } from "./ChessControls";
 import React from "react";
 
 export const Chess = () => {
@@ -56,37 +57,14 @@ export const Chess = () => {
         : "drop-shadow(2px 2px 2px rgba(255, 255, 255, 0.3))",
   });
 
-  const getStatusMessage = () => {
-    switch (gameStatus) {
-      case "check":
-        return `${capitalize(currentTurn)} is in check!`;
-      case "checkmate":
-        return `Checkmate! ${
-          currentTurn === "white" ? "Black" : "White"
-        } wins!`;
-      case "stalemate":
-        return "Stalemate! The game is a draw.";
-      default:
-        return `${capitalize(currentTurn)}'s turn`;
-    }
-
-  };
 
   return (
     <div className="bg-background flex flex-col px-4 py-6 w-full">
       <main className="flex-1 w-full flex flex-col items-center justify-center gap-4">
         {/* Game Info Section */}
         <div className="w-full max-w-md">
-          <div className="bg-card rounded-lg shadow-lg border border-border p-3">
-            <h2 className="text-base font-semibold mb-1 text-foreground">
-              Game Status
-            </h2>
-            <p className="text-base text-foreground">{getStatusMessage()}</p>
 
-            <p className="text-sm text-muted-foreground">
-              Turn {Math.floor(moveHistory.length / 2) + 1}
-            </p>
-          </div>
+          <ChessControls />
         </div>
 
         <div className="w-full max-w-4xl flex flex-col md:flex-row gap-4">
@@ -105,7 +83,7 @@ export const Chess = () => {
                 {["a", "b", "c", "d", "e", "f", "g", "h"].map((file) => (
                   <div
                     key={`top-${file}`}
-                    className="flex justify-center text-xs text-muted-foreground"
+                    className="flex justify-center text-xs text-muted-foreground select-none"
                   >
                     {file}
                   </div>
@@ -116,7 +94,7 @@ export const Chess = () => {
                 {[8, 7, 6, 5, 4, 3, 2, 1].map((rank, rankIndex) => (
                   <React.Fragment key={`rank-${rank}`}>
                     {/* Left rank label */}
-                    <div className="flex items-center justify-center text-xs text-muted-foreground w-6">
+                    <div className="flex items-center justify-center text-xs text-muted-foreground w-6 select-none">
                       {rank}
                     </div>
 
@@ -158,7 +136,7 @@ export const Chess = () => {
                     })}
 
                     {/* Right rank label */}
-                    <div className="flex items-center justify-center text-xs text-muted-foreground w-6">
+                    <div className="flex items-center justify-center text-xs text-muted-foreground w-6 select-none">
                       {rank}
                     </div>
                   </React.Fragment>
@@ -169,7 +147,7 @@ export const Chess = () => {
                 {["a", "b", "c", "d", "e", "f", "g", "h"].map((file) => (
                   <div
                     key={`bottom-${file}`}
-                    className="flex justify-center text-xs text-muted-foreground"
+                    className="flex justify-center text-xs text-muted-foreground select-none"
                   >
                     {file}
                   </div>
@@ -179,12 +157,7 @@ export const Chess = () => {
             </div>
           </div>
         </div>
-        {/* Controls Section */}
-        <div className="w-full max-w-md">
-          <div className="bg-card rounded-lg shadow-lg border border-border p-3 w-full flex justify-center">
-            <Button onClick={resetGame}>Reset Game</Button>
-          </div>
-        </div>
+      
       </main>
     </div>
   );

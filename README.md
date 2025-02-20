@@ -53,7 +53,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [X] Save game state to localStorage
 - [ ] Undo/redo moves
 - [X] Export game in PGN format
-- [ ] Timer/clock support
+- [X] Timer/clock support
 - [ ] Move suggestion hints
 - [ ] Board position analysis
 - [ ] Keyboard controls support
