@@ -27,16 +27,20 @@ interface AudioOptions {
 }
 
 // Constants
-const SOUND_FORMAT: SoundFormat = {
+const SOUND_FORMAT_MP3: SoundFormat = {
   extension: ".mp3",
   mimeType: "audio/mpeg",
+};
+const SOUND_FORMAT_OGG: SoundFormat = {
+  extension: ".ogg",
+  mimeType: "audio/ogg",
 };
 
 /**
  * Gets the URL for a sound effect
  */
 export const getSoundUrl = (theme: string = "standard", effect: SoundEffect): string => {
-  return `/sounds/${theme}/${effect}${SOUND_FORMAT.extension}`;
+  return `/sounds/${theme}/${effect}${SOUND_FORMAT_OGG.extension}`;
 };
 
 /**
