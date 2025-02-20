@@ -1,12 +1,7 @@
-import {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-  useEffect,
-} from "react";
+import useLocalStorage from "@/hooks/useLocalStorage";
 import {
   createInitialBoard,
+  handleCastling,
   isInCheck,
   isInCheckmate,
   isStalemate,
@@ -14,10 +9,10 @@ import {
   Piece,
   PieceColor,
   wouldMoveResultInCheck,
-  handleCastling,
-} from "@/utils/chess";
+} from "@/utils/chessUtility";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 
-interface Move {
+export interface Move {
   piece: Piece;
   from: number;
   to: number;
@@ -25,12 +20,15 @@ interface Move {
   timestamp: number;
 }
 
-interface GameState {
+export interface GameState {
   board: (Piece | null)[];
   selectedPiece: number | null;
   currentTurn: PieceColor;
   gameStatus: "playing" | "check" | "checkmate" | "stalemate";
   moveHistory: Move[];
+  whitePlayer: string;
+  blackPlayer: string;
+  result: string;
 }
 
 interface ChessContextType extends GameState {
@@ -38,17 +36,22 @@ interface ChessContextType extends GameState {
   resetGame: () => void;
   toChessNotation: (position: number) => string;
   getMoveNotation: (move: Move) => string;
+  exportPGN: () => string;
+  gameState: GameState;
 }
 
 const ChessContext = createContext<ChessContextType | undefined>(undefined);
 
 export const ChessProvider = ({ children }: { children: ReactNode }) => {
-  const [gameState, setGameState] = useState<GameState>({
+  const [gameState, setGameState] = useLocalStorage("gameState", {
     board: createInitialBoard(),
     selectedPiece: null,
     currentTurn: "white",
     gameStatus: "playing",
     moveHistory: [],
+    whitePlayer: "Player",
+    blackPlayer: "Computer",
+    result: "*",
   });
 
   // Convert position number to chess notation
@@ -77,91 +80,91 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     return `${pieceSymbol}${from}${captureNotation}${to}`;
   };
 
-const handleSquareClick = (position: number) => {
-  const { board, selectedPiece, currentTurn, moveHistory } = gameState;
-  const piece = board[position];
+  const handleSquareClick = (position: number) => {
+    const { board, selectedPiece, currentTurn, moveHistory } = gameState;
+    const piece = board[position];
 
-  // First click - selecting a piece
-  if (selectedPiece === null && piece?.color === currentTurn) {
-    setGameState((prev) => ({ ...prev, selectedPiece: position }));
-    return;
-  }
-
-  // Second click - attempting to move
-  if (selectedPiece !== null) {
-    const movingPiece = board[selectedPiece];
-
-    // Clicking the same square or invalid selection
-    if (!movingPiece || selectedPiece === position) {
-      setGameState((prev) => ({ ...prev, selectedPiece: null }));
+    // First click - selecting a piece
+    if (selectedPiece === null && piece?.color === currentTurn) {
+      setGameState((prev: GameState) => ({ ...prev, selectedPiece: position }));
       return;
     }
 
-    // Check if move is valid and wouldn't result in self-check
-    if (
-      isValidMove(board, selectedPiece, position) &&
-      !wouldMoveResultInCheck(board, selectedPiece, position, currentTurn)
-    ) {
-      let newBoard;
+    // Second click - attempting to move
+    if (selectedPiece !== null) {
+      const movingPiece = board[selectedPiece];
 
-      // Handle castling moves
+      // Clicking the same square or invalid selection
+      if (!movingPiece || selectedPiece === position) {
+        setGameState((prev: GameState) => ({ ...prev, selectedPiece: null }));
+        return;
+      }
+
+      // Check if move is valid and wouldn't result in self-check
       if (
-        movingPiece.type === "king" &&
-        Math.abs(position - selectedPiece) === 2
+        isValidMove(board, selectedPiece, position) &&
+        !wouldMoveResultInCheck(board, selectedPiece, position, currentTurn)
       ) {
-        newBoard = handleCastling(board, selectedPiece, position);
-      } else {
-        // Handle regular moves
-        newBoard = [...board];
-        newBoard[position] = movingPiece;
-        newBoard[selectedPiece] = null;
+        let newBoard;
 
-        // Update piece position
-        if (newBoard[position]) {
-          newBoard[position]!.position = position;
-          newBoard[position]!.hasMoved = true;
+        // Handle castling moves
+        if (
+          movingPiece.type === "king" &&
+          Math.abs(position - selectedPiece) === 2
+        ) {
+          newBoard = handleCastling(board, selectedPiece, position);
+        } else {
+          // Handle regular moves
+          newBoard = [...board];
+          newBoard[position] = movingPiece;
+          newBoard[selectedPiece] = null;
+
+          // Update piece position
+          if (newBoard[position]) {
+            newBoard[position]!.position = position;
+            newBoard[position]!.hasMoved = true;
+          }
         }
+
+        const capturedPiece = board[position];
+
+        // Record the move
+        const move: Move = {
+          piece: movingPiece,
+          from: selectedPiece,
+          to: position,
+          captured: capturedPiece || undefined,
+          timestamp: Date.now(),
+        };
+
+        // Calculate next turn's color
+        const nextTurn = currentTurn === "white" ? "black" : "white";
+
+        // Check game status for the next player AFTER the move
+        let newGameStatus: GameState["gameStatus"] = "playing";
+
+        if (isInCheckmate(newBoard, nextTurn)) {
+          newGameStatus = "checkmate";
+        } else if (isInCheck(newBoard, nextTurn)) {
+          newGameStatus = "check";
+        } else if (isStalemate(newBoard, nextTurn)) {
+          newGameStatus = "stalemate";
+        }
+
+        setGameState((prev: GameState) => ({
+          ...prev,
+          board: newBoard,
+          selectedPiece: null,
+          currentTurn: nextTurn,
+          gameStatus: newGameStatus,
+          moveHistory: [...moveHistory, move],
+        }));
+      } else {
+        // Invalid move - just deselect the piece
+        setGameState((prev: GameState) => ({ ...prev, selectedPiece: null }));
       }
-
-      const capturedPiece = board[position];
-
-      // Record the move
-      const move: Move = {
-        piece: movingPiece,
-        from: selectedPiece,
-        to: position,
-        captured: capturedPiece || undefined,
-        timestamp: Date.now(),
-      };
-
-      // Calculate next turn's color
-      const nextTurn = currentTurn === "white" ? "black" : "white";
-
-      // Check game status for the next player AFTER the move
-      let newGameStatus: GameState["gameStatus"] = "playing";
-
-      if (isInCheckmate(newBoard, nextTurn)) {
-        newGameStatus = "checkmate";
-      } else if (isInCheck(newBoard, nextTurn)) {
-        newGameStatus = "check";
-      } else if (isStalemate(newBoard, nextTurn)) {
-        newGameStatus = "stalemate";
-      }
-
-      setGameState((prev) => ({
-        ...prev,
-        board: newBoard,
-        selectedPiece: null,
-        currentTurn: nextTurn,
-        gameStatus: newGameStatus,
-        moveHistory: [...moveHistory, move],
-      }));
-    } else {
-      // Invalid move - just deselect the piece
-      setGameState((prev) => ({ ...prev, selectedPiece: null }));
     }
-  }
-};
+  };
 
   useEffect(() => {
     const { board, currentTurn } = gameState;
@@ -176,22 +179,27 @@ const handleSquareClick = (position: number) => {
     }
 
     if (status !== gameState.gameStatus) {
-      setGameState((prev) => ({ ...prev, gameStatus: status }));
+      setGameState((prev: GameState) => ({ ...prev, gameStatus: status }));
     }
   }, [gameState.board, gameState.currentTurn]);
 
   const resetGame = () => {
     setGameState({
+      ...gameState,
       board: createInitialBoard(),
       selectedPiece: null,
       currentTurn: "white",
       gameStatus: "playing",
       moveHistory: [],
+      result: "*",
+      whitePlayer: "Player",
+      blackPlayer: "Computer",
     });
   };
 
   const value = {
     ...gameState,
+    gameState,
     handleSquareClick,
     resetGame,
     toChessNotation,

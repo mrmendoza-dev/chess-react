@@ -1,6 +1,6 @@
 # React Chess Game
 
-A modern chess game implementation built with React, TypeScript, and TailwindCSS. Features a responsive design with dark/light mode support.
+A modern chess game implementation built with React, TypeScript, and TailwindCSS. Features a responsive design with dark/light mode support. Designed as a learning tool rather than a competitive platform.
 
 ## Current Features
 
@@ -50,15 +50,14 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 
 ### Medium Term
 
-- [ ] Save game state to localStorage
+- [X] Save game state to localStorage
 - [ ] Undo/redo moves
-- [ ] Export game in PGN format
+- [X] Export game in PGN format
 - [ ] Timer/clock support
 - [ ] Move suggestion hints
 - [ ] Board position analysis
 - [ ] Keyboard controls support
 - [ ] Accessibility improvements
-- [ ] Move confirmation dialog
 - [ ] Add sound effects for moves
 - [ ] Add move animations
 
@@ -70,10 +69,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 - [ ] Game analysis tools
 - [ ] Save games to database
 - [ ] User accounts
-- [ ] Leaderboard system
-- [ ] Tournament support
 - [ ] Chat system
-- [ ] Spectator mode
 
 ## Tech Stack
 

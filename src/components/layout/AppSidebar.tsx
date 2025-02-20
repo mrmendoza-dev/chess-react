@@ -1,24 +1,18 @@
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-} from "@/components/ui/sidebar";
-import { useMediaQuery } from "react-responsive";
+import { Button } from "@/components/ui/button";
+import { Sidebar, SidebarContent, SidebarGroup } from "@/components/ui/sidebar";
 import { useChess } from "@/contexts/ChessContext";
-import { getMoveNotation } from "@/utils/chess";
-
+import { exportPGN } from "@/utils/pgnUtility";
+import { useMediaQuery } from "react-responsive";
+import { DownloadIcon } from "lucide-react";
+import { MoveHistory } from "@/components/MoveHistory";
 
 export const AppSidebar = () => {
   const isMobile = useMediaQuery({ maxWidth: 768 });
-  const { moveHistory } = useChess();
+  const { moveHistory, gameState } = useChess();
 
-
+  const handleExportPGN = () => {
+    exportPGN(gameState);
+  };
 
   return (
     <Sidebar
@@ -44,30 +38,14 @@ export const AppSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent> */}
           {/* Move History */}
-          <div className="w-full bg-card rounded-lg shadow-lg border border-border p-4">
-            <h3 className="text-lg font-semibold mb-3">Move History</h3>
-            <div className="min-h-[400px] overflow-y-auto">
-              {moveHistory.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No moves yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {moveHistory.map((move, index) => (
-                    <div
-                      key={move.timestamp}
-                      className="flex items-center gap-2 text-sm p-2 hover:bg-muted/50 rounded"
-                    >
-                      <span className="font-mono w-8 text-muted-foreground">
-                        {Math.floor(index / 2) + 1}.
-                      </span>
-                      <span className="font-medium">
-                        {getMoveNotation(move)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="flex justify-center p-2">
+            <Button onClick={handleExportPGN} variant="outline">
+              Export PGN <DownloadIcon className="w-4 h-4" />
+            </Button>
           </div>
+          <MoveHistory
+            moveHistory={moveHistory}
+          />
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
