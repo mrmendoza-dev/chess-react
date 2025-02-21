@@ -103,8 +103,8 @@ export const ChessControls = () => {
 
   return (
     <Card className="w-full max-w-lg mx-auto">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-3">
+      <CardContent className="p-2">
+        <div className="flex items-center gap-2">
           {/* Left section - Game Time and Turn Count */}
           <div className="flex items-center gap-2 min-w-[100px]">
             <Clock className="w-4 h-4 text-muted-foreground" />

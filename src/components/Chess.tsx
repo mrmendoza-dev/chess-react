@@ -57,7 +57,7 @@ export const Chess = () => {
 
   return (
     <div className="bg-background flex flex-col px-4 py-6 w-full">
-      <main className="flex-1 w-full flex flex-col items-center justify-center gap-4">
+      <main className="flex-1 w-full flex flex-col items-center justify-center gap-2">
         {/* Game Info Section */}
         <div className="w-full">
           <ChessControls />
@@ -66,10 +66,8 @@ export const Chess = () => {
         <div className="w-full max-w-4xl flex flex-col md:flex-row gap-4">
           {/* Chess Board Container */}
           <div id="chess-container" className="w-full">
-            <CapturedPieces moveHistory={moveHistory} />
-
             <div
-              className="mx-auto bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-gray-200 dark:border-neutral-700 p-1"
+              className="mb-2 mx-auto bg-white dark:bg-neutral-800 rounded-lg shadow-lg border border-gray-200 dark:border-neutral-700 p-1"
               style={{ width: boardSize ? `${boardSize}px` : "100%" }}
             >
               {/* Main grid container */}
@@ -146,6 +144,7 @@ export const Chess = () => {
                 <div className="w-6" />
               </div>
             </div>
+            <CapturedPieces moveHistory={moveHistory} />
           </div>
         </div>
         <PawnPromotionDialog
