@@ -11,7 +11,6 @@ import { useChess } from "@/contexts/ChessContext";
 import { Piece, PieceColor } from "@/utils/chessUtility";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { capitalize } from "@/utils/formatUtility";
 import { useEffect, useState } from "react";
 import { CapturedPieces } from "./CapturedPieces";
 import { ChessControls } from "./ChessControls";
@@ -34,6 +33,8 @@ export const Chess = () => {
     previewMoves,
     previewAttacks,
     handleSquareHover,
+    handlePromotion,
+    promotionSquare,
   } = useChess();
 
   const handleResize = () => {
@@ -69,8 +70,7 @@ export const Chess = () => {
     <div className="bg-background flex flex-col px-4 py-6 w-full">
       <main className="flex-1 w-full flex flex-col items-center justify-center gap-4">
         {/* Game Info Section */}
-        <div className="w-full max-w-md">
-
+        <div className="w-full">
           <ChessControls />
         </div>
 
@@ -192,7 +192,12 @@ export const Chess = () => {
             </div>
           </div>
         </div>
-      
+        <PawnPromotionDialog
+          isOpen={promotionSquare !== null}
+          onClose={() => {}} // Dialog shouldn't be closeable
+          onPromote={handlePromotion}
+          color={currentTurn}
+        />
       </main>
     </div>
   );
@@ -208,4 +213,60 @@ export const getPieceIcon = (type: Piece["type"]): IconDefinition => {
     pawn: faChessPawn,
   };
   return icons[type];
+};
+
+
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
+
+interface PawnPromotionDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onPromote: (pieceType: Piece["type"]) => void;
+  color: PieceColor;
+}
+
+export const PawnPromotionDialog = ({
+  isOpen,
+  onClose,
+  onPromote,
+  color,
+}: PawnPromotionDialogProps) => {
+  const promotionPieces: Piece["type"][] = [
+    "queen",
+    "rook",
+    "bishop",
+    "knight",
+  ];
+
+  const getPieceStyle = (color: PieceColor) => ({
+    fontSize: "48px",
+    color: color === "white" ? "white" : "black",
+    filter:
+      color === "white"
+        ? "drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5))"
+        : "drop-shadow(2px 2px 2px rgba(255, 255, 255, 0.3))",
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+      <DialogTitle>Choose Promotion Piece</DialogTitle>
+        <div className="grid grid-cols-4 gap-4 bg-gray-100 dark:bg-neutral-800 rounded-lg">
+          {promotionPieces.map((pieceType) => (
+            <button
+              key={pieceType}
+              onClick={() => onPromote(pieceType)}
+              className="p-4 rounded-lg hover:bg-accent flex items-center justify-center transition-colors"
+            >
+              <FontAwesomeIcon
+                icon={getPieceIcon(pieceType)}
+                style={getPieceStyle(color)}
+              />
+            </button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };

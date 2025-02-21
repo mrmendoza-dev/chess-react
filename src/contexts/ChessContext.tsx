@@ -11,6 +11,8 @@ import {
   Piece,
   PieceColor,
   wouldMoveResultInCheck,
+  canPromotePawn,
+  promotePawn,
 } from "@/utils/chessUtility";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { playSound } from "@/utils/soundUtility";
@@ -37,6 +39,7 @@ export interface GameState {
 interface ChessContextType extends GameState {
   handleSquareClick: (position: number) => void;
   handleSquareHover: (position: number | null) => void;
+
   resetGame: () => void;
   toChessNotation: (position: number) => string;
   getMoveNotation: (move: Move) => string;
@@ -47,6 +50,8 @@ interface ChessContextType extends GameState {
   hoverPiece: number | null;
   previewMoves: number[];
   previewAttacks: number[];
+  promotionSquare: number | null;
+  handlePromotion: (pieceType: Piece["type"]) => void;
 }
 
 const ChessContext = createContext<ChessContextType | undefined>(undefined);
@@ -68,6 +73,7 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
   const [hoverPiece, setHoverPiece] = useState<number | null>(null);
   const [previewMoves, setPreviewMoves] = useState<number[]>([]);
   const [previewAttacks, setPreviewAttacks] = useState<number[]>([]);
+  const [promotionSquare, setPromotionSquare] = useState<number | null>(null);
 
 
   // Convert position number to chess notation
@@ -111,7 +117,6 @@ const handleSquareClick = (position: number) => {
   // If a piece is already selected...
   if (selectedPiece !== null) {
     // If clicking the same piece again, deselect it
-
     if (position === selectedPiece) {
       setGameState((prev: GameState) => ({ ...prev, selectedPiece: null }));
       resetValidMoves();
@@ -121,7 +126,7 @@ const handleSquareClick = (position: number) => {
     // If clicking a valid move position, make the move
     if (validMoves.includes(position)) {
       const movingPiece = board[selectedPiece];
-      let newBoard;
+      let newBoard: (Piece | null)[];
 
       // Handle castling moves
       if (
@@ -133,6 +138,42 @@ const handleSquareClick = (position: number) => {
       } else {
         // Handle regular moves
         newBoard = [...board];
+
+        // Check for pawn promotion before making the move
+        if (
+          movingPiece.type === "pawn" &&
+          ((movingPiece.color === "white" && Math.floor(position / 8) === 0) ||
+            (movingPiece.color === "black" && Math.floor(position / 8) === 7))
+        ) {
+          // Make the move but don't change turns yet
+          newBoard[position] = { ...movingPiece, position, hasMoved: true };
+          newBoard[selectedPiece] = null;
+
+          const capturedPiece = board[position];
+
+          // Update game state but stay on same turn
+          setGameState((prev: GameState) => ({
+            ...prev,
+            board: newBoard,
+            selectedPiece: null,
+            moveHistory: [
+              ...moveHistory,
+              {
+                piece: movingPiece,
+                from: selectedPiece,
+                to: position,
+                captured: capturedPiece || undefined,
+                timestamp: Date.now(),
+              },
+            ],
+          }));
+
+          setPromotionSquare(position);
+          resetValidMoves();
+          return;
+        }
+
+        // Handle non-promotion moves
         newBoard[position] = movingPiece;
         newBoard[selectedPiece] = null;
 
@@ -262,6 +303,59 @@ const handleSquareHover = (position: number | null) => {
     });
   };
 
+const handlePromotion = (pieceType: Piece["type"]) => {
+  if (promotionSquare === null) return;
+
+  // Get the current board state
+  const { board, currentTurn, moveHistory } = gameState;
+
+  // Create new board with promoted piece
+  const newBoard = [...board];
+  const piece = newBoard[promotionSquare];
+
+  if (piece && piece.type === "pawn") {
+    newBoard[promotionSquare] = {
+      ...piece,
+      type: pieceType,
+    };
+  }
+
+  const nextTurn = currentTurn === "white" ? "black" : "white";
+  let newGameStatus: GameState["gameStatus"] = "playing";
+
+  // Check game status after promotion
+  if (isInCheckmate(newBoard, nextTurn)) {
+    newGameStatus = "checkmate";
+    playSound(soundTheme, "Victory");
+  } else if (isInCheck(newBoard, nextTurn)) {
+    newGameStatus = "check";
+    playSound(soundTheme, "Check");
+  } else if (isStalemate(newBoard, nextTurn)) {
+    newGameStatus = "stalemate";
+    playSound(soundTheme, "Draw");
+  }
+
+  // Update the last move to include promotion
+  const lastMove = moveHistory[moveHistory.length - 1];
+  const updatedMove = {
+    ...lastMove,
+    promotion: pieceType,
+  };
+
+  // Update game state
+  setGameState((prev: GameState) => ({
+    ...prev,
+    board: newBoard,
+    currentTurn: nextTurn,
+    gameStatus: newGameStatus,
+    moveHistory: [...moveHistory.slice(0, -1), updatedMove],
+  }));
+
+  setPromotionSquare(null);
+  playSound(soundTheme, "GenericNotify");
+};
+
+
   const value = {
     ...gameState,
     gameState,
@@ -275,6 +369,8 @@ const handleSquareHover = (position: number | null) => {
     previewMoves,
     previewAttacks,
     handleSquareHover,
+    handlePromotion,
+    promotionSquare,
   };
 
   return (

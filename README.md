@@ -40,7 +40,7 @@ A modern chess game implementation built with React, TypeScript, and TailwindCSS
 
 - [X] Castling implementation
 - [ ] En passant capture for pawns
-- [ ] Pawn promotion
+- [X] Pawn promotion
 - [X] Check detection
 - [X] Checkmate detection
 - [X] Stalemate detection

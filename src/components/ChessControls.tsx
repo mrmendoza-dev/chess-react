@@ -91,7 +91,7 @@ export const ChessControls = () => {
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-lg mx-auto">
       <CardContent className="p-4">
         {/* Header with Game Info */}
         <div className="flex items-center justify-between mb-4 gap-2">

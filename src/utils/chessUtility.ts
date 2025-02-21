@@ -92,9 +92,9 @@ export const isValidMove = (
 
 
 // Helper functions
-const getRow = (position: number): number => Math.floor(position / 8);
-const getCol = (position: number): number => position % 8;
-const getPosition = (row: number, col: number): number => row * 8 + col;
+export const getRow = (position: number): number => Math.floor(position / 8);
+export const getCol = (position: number): number => position % 8;
+export const getPosition = (row: number, col: number): number => row * 8 + col;
 
 const isPathClear = (
   board: (Piece | null)[],
@@ -655,4 +655,34 @@ export const getPotentialAttacks = (
   }
 
   return potentialAttacks;
+};
+
+// In chessUtility.ts
+
+// Check if a pawn can be promoted
+export const canPromotePawn = (board: (Piece | null)[], position: number): boolean => {
+  const piece = board[position];
+  if (!piece || piece.type !== "pawn") return false;
+  
+  const row = Math.floor(position / 8);
+  return (piece.color === "white" && row === 0) || (piece.color === "black" && row === 7);
+};
+
+// Handle pawn promotion
+export const promotePawn = (
+  board: (Piece | null)[],
+  position: number,
+  newType: Piece["type"]
+): (Piece | null)[] => {
+  const newBoard = [...board];
+  const piece = newBoard[position];
+  
+  if (piece && piece.type === "pawn") {
+    newBoard[position] = {
+      ...piece,
+      type: newType
+    };
+  }
+  
+  return newBoard;
 };

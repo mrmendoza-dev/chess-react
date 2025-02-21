@@ -10,6 +10,7 @@ type SoundEffect =
   | "Defeat"
   | "Draw"
   | "Error"
+  | "GenericNotify"
   | "Move"
   | "Select"
   | "Victory";
