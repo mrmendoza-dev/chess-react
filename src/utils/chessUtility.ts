@@ -1,3 +1,5 @@
+import { Move } from "@/contexts/ChessContext";
+
 export type PieceType =
   | "pawn"
   | "rook"
@@ -64,7 +66,8 @@ export const createInitialBoard = (): (Piece | null)[] => {
 export const isValidMove = (
   board: (Piece | null)[],
   from: number,
-  to: number
+  to: number,
+  lastPawnMove?: GameState["lastPawnMove"]
 ): boolean => {
   const piece = board[from];
   if (!piece) return false;
@@ -74,7 +77,7 @@ export const isValidMove = (
 
   switch (piece.type) {
     case "pawn":
-      return isValidPawnMove(board, from, to);
+      return isValidPawnMove(board, from, to, lastPawnMove);
     case "rook":
       return isValidRookMove(board, from, to);
     case "knight":
@@ -129,10 +132,31 @@ const isPathClear = (
 };
 
 // Piece-specific move validation
+// Update GameState interface in ChessContext
+export interface GameState {
+  board: (Piece | null)[];
+  selectedPiece: number | null;
+  currentTurn: PieceColor;
+  gameStatus: "playing" | "check" | "checkmate" | "stalemate";
+  moveHistory: Move[];
+  whitePlayer: string;
+  blackPlayer: string;
+  result: string;
+  lastPawnMove?: { // Add this field
+    from: number;
+    to: number;
+    timestamp: number;
+  };
+}
+
+
+
+// Update isValidPawnMove in chessUtility.ts
 const isValidPawnMove = (
   board: (Piece | null)[],
   from: number,
-  to: number
+  to: number,
+  lastPawnMove?: GameState['lastPawnMove']
 ): boolean => {
   const piece = board[from];
   if (!piece) return false;
@@ -161,13 +185,18 @@ const isValidPawnMove = (
     return true;
   }
 
-  // Capture move
+  // Regular capture move
   if (
     Math.abs(fromCol - toCol) === 1 &&
     toRow === fromRow + direction &&
     board[to] &&
     board[to]?.color !== piece.color
   ) {
+    return true;
+  }
+
+  // En passant capture
+  if (isEnPassantMove(board, from, to, lastPawnMove)) {
     return true;
   }
 
@@ -276,16 +305,24 @@ export const wouldMoveResultInCheck = (
   board: (Piece | null)[],
   from: number,
   to: number,
-  color: PieceColor
+  color: PieceColor,
+  lastPawnMove?: GameState["lastPawnMove"]
 ): boolean => {
-  // Create a copy of the board
   const tempBoard = [...board];
-  
-  // Make the move on the temporary board
+  const piece = tempBoard[from];
+
+  // Handle en passant capture in check validation
+  if (
+    piece?.type === "pawn" &&
+    isEnPassantMove(board, from, to, lastPawnMove)
+  ) {
+    const capturedPawnPos = lastPawnMove!.to;
+    tempBoard[capturedPawnPos] = null;
+  }
+
   tempBoard[to] = tempBoard[from];
   tempBoard[from] = null;
-  
-  // Check if the move results in check
+
   return isInCheck(tempBoard, color);
 };
 
@@ -488,44 +525,44 @@ export const handleCastling = (
 };
 
 
-export const getValidMoves = (
-  board: (Piece | null)[],
-  position: number,
-  color: PieceColor
-): number[] => {
-  const piece = board[position];
-  if (!piece || piece.color !== color) return [];
+// export const getValidMoves = (
+//   board: (Piece | null)[],
+//   position: number,
+//   color: PieceColor
+// ): number[] => {
+//   const piece = board[position];
+//   if (!piece || piece.color !== color) return [];
 
-  const validMoves: number[] = [];
+//   const validMoves: number[] = [];
 
-  // Check all possible squares
-  for (let targetPos = 0; targetPos < 64; targetPos++) {
-    // Skip current position
-    if (targetPos === position) continue;
+//   // Check all possible squares
+//   for (let targetPos = 0; targetPos < 64; targetPos++) {
+//     // Skip current position
+//     if (targetPos === position) continue;
 
-    // Check if move is valid and wouldn't result in check
-    if (
-      isValidMove(board, position, targetPos) &&
-      !wouldMoveResultInCheck(board, position, targetPos, color)
-    ) {
-      validMoves.push(targetPos);
-    }
-  }
+//     // Check if move is valid and wouldn't result in check
+//     if (
+//       isValidMove(board, position, targetPos) &&
+//       !wouldMoveResultInCheck(board, position, targetPos, color)
+//     ) {
+//       validMoves.push(targetPos);
+//     }
+//   }
 
-  // Special case for castling
-  if (piece.type === "king" && !piece.hasMoved) {
-    // Kingside castling
-    if (isValidCastling(board, position, position + 2, color)) {
-      validMoves.push(position + 2);
-    }
-    // Queenside castling
-    if (isValidCastling(board, position, position - 2, color)) {
-      validMoves.push(position - 2);
-    }
-  }
+//   // Special case for castling
+//   if (piece.type === "king" && !piece.hasMoved) {
+//     // Kingside castling
+//     if (isValidCastling(board, position, position + 2, color)) {
+//       validMoves.push(position + 2);
+//     }
+//     // Queenside castling
+//     if (isValidCastling(board, position, position - 2, color)) {
+//       validMoves.push(position - 2);
+//     }
+//   }
 
-  return validMoves;
-};
+//   return validMoves;
+// };
 
 // Helper function to convert position to board coordinates
 export const positionToCoords = (position: number) => ({
@@ -576,35 +613,35 @@ export const formatValidMoves = (
 
 
 
-export const getValidAttacks = (
-  board: (Piece | null)[],
-  position: number,
-  color: PieceColor
-): number[] => {
-  const piece = board[position];
-  if (!piece || piece.color !== color) return [];
+// export const getValidAttacks = (
+//   board: (Piece | null)[],
+//   position: number,
+//   color: PieceColor
+// ): number[] => {
+//   const piece = board[position];
+//   if (!piece || piece.color !== color) return [];
 
-  const validAttacks: number[] = [];
+//   const validAttacks: number[] = [];
 
-  // Check all possible squares
-  for (let targetPos = 0; targetPos < 64; targetPos++) {
-    // Skip current position
-    if (targetPos === position) continue;
+//   // Check all possible squares
+//   for (let targetPos = 0; targetPos < 64; targetPos++) {
+//     // Skip current position
+//     if (targetPos === position) continue;
 
-    const targetPiece = board[targetPos];
+//     const targetPiece = board[targetPos];
 
-    // Check if move is valid and targets an enemy piece
-    if (
-      isValidMove(board, position, targetPos) &&
-      targetPiece &&
-      targetPiece.color !== color
-    ) {
-      validAttacks.push(targetPos);
-    }
-  }
+//     // Check if move is valid and targets an enemy piece
+//     if (
+//       isValidMove(board, position, targetPos) &&
+//       targetPiece &&
+//       targetPiece.color !== color
+//     ) {
+//       validAttacks.push(targetPos);
+//     }
+//   }
 
-  return validAttacks;
-};
+//   return validAttacks;
+// };
 
 // Helper to get all pieces that can attack a specific position
 export const getPiecesThreateningSquare = (
@@ -685,4 +722,111 @@ export const promotePawn = (
   }
   
   return newBoard;
+};
+
+
+
+// In chessUtility.ts, update getValidMoves and getValidAttacks to include en passant
+
+export const getValidMoves = (
+  board: (Piece | null)[],
+  position: number,
+  color: PieceColor,
+  lastPawnMove?: GameState["lastPawnMove"]
+): number[] => {
+  const piece = board[position];
+  if (!piece || piece.color !== color) return [];
+
+  const validMoves: number[] = [];
+
+  // Check all possible squares
+  for (let targetPos = 0; targetPos < 64; targetPos++) {
+    if (targetPos === position) continue;
+
+    // Check if move is valid (including en passant) and wouldn't result in check
+    if (
+      (isValidMove(board, position, targetPos) ||
+        (piece.type === "pawn" && isEnPassantMove(board, position, targetPos, lastPawnMove))) &&
+      !wouldMoveResultInCheck(board, position, targetPos, color)
+    ) {
+      validMoves.push(targetPos);
+    }
+  }
+
+  return validMoves;
+};
+
+export const getValidAttacks = (
+  board: (Piece | null)[],
+  position: number,
+  color: PieceColor,
+  lastPawnMove?: GameState["lastPawnMove"]
+): number[] => {
+  const piece = board[position];
+  if (!piece || piece.color !== color) return [];
+
+  const validAttacks: number[] = [];
+
+  // Check all possible squares
+  for (let targetPos = 0; targetPos < 64; targetPos++) {
+    if (targetPos === position) continue;
+
+    const targetPiece = board[targetPos];
+    
+    // Include both regular captures and en passant captures
+    if (
+      ((isValidMove(board, position, targetPos) && targetPiece && targetPiece.color !== color) ||
+        (piece.type === "pawn" && isEnPassantMove(board, position, targetPos, lastPawnMove))) &&
+      !wouldMoveResultInCheck(board, position, targetPos, color)
+    ) {
+      validAttacks.push(targetPos);
+    }
+  }
+
+  return validAttacks;
+};
+
+export const isEnPassantMove = (
+  board: (Piece | null)[],
+  from: number,
+  to: number,
+  lastPawnMove?: GameState["lastPawnMove"]
+): boolean => {
+  if (!lastPawnMove) return false;
+
+  const piece = board[from];
+  if (!piece || piece.type !== "pawn") return false;
+
+  const fromRow = getRow(from);
+  const fromCol = getCol(from);
+  const toRow = getRow(to);
+  const toCol = getCol(to);
+
+  // Must be on correct row based on color
+  const correctRow = piece.color === "white" ? 3 : 4;
+  if (fromRow !== correctRow) return false;
+
+  // Must move diagonally forward one square, just like a normal pawn capture
+  const direction = piece.color === "white" ? -1 : 1;
+  if (toRow !== fromRow + direction) return false; // Must move exactly one row forward
+  if (Math.abs(toCol - fromCol) !== 1) return false; // Must move exactly one column left or right
+
+  // Check if there's an enemy pawn that just moved two squares
+  const capturedPawnPos = lastPawnMove.to;
+  const capturedPawn = board[capturedPawnPos];
+
+  if (
+    !capturedPawn ||
+    capturedPawn.type !== "pawn" ||
+    capturedPawn.color === piece.color
+  )
+    return false;
+
+  // Check if the last move was a two-square pawn move
+  const lastMoveFromRow = getRow(lastPawnMove.from);
+  const lastMoveToRow = getRow(lastPawnMove.to);
+  if (Math.abs(lastMoveToRow - lastMoveFromRow) !== 2) return false;
+
+  // Check if the captured pawn is on the same column as the destination
+  return toCol === getCol(lastPawnMove.to);
 };

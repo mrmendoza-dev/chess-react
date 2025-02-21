@@ -13,6 +13,7 @@ import {
   wouldMoveResultInCheck,
   canPromotePawn,
   promotePawn,
+  isEnPassantMove,
 } from "@/utils/chessUtility";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { playSound } from "@/utils/soundUtility";
@@ -34,12 +35,12 @@ export interface GameState {
   whitePlayer: string;
   blackPlayer: string;
   result: string;
+  lastPawnMove: Move | null;
 }
 
 interface ChessContextType extends GameState {
   handleSquareClick: (position: number) => void;
   handleSquareHover: (position: number | null) => void;
-
   resetGame: () => void;
   toChessNotation: (position: number) => string;
   getMoveNotation: (move: Move) => string;
@@ -66,6 +67,7 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     whitePlayer: "Player",
     blackPlayer: "Computer",
     result: "*",
+    lastPawnMove: null,
   });
   const [soundTheme, setSoundTheme] = useState("standard");
   const [validMoves, setValidMoves] = useState<number[]>([]);
@@ -102,16 +104,27 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     return `${pieceSymbol}${from}${captureNotation}${to}`;
   };
 
-  const updateValidMoves = (board: (Piece | null)[], position: number, currentTurn: PieceColor) => {
-    setValidMoves(getValidMoves(board, position, currentTurn));
-    setValidAttacks(getValidAttacks(board, position, currentTurn));
-  };
+const updateValidMoves = (
+  board: (Piece | null)[],
+  position: number,
+  currentTurn: PieceColor
+) => {
+  setValidMoves(
+    getValidMoves(board, position, currentTurn, gameState.lastPawnMove)
+  );
+  setValidAttacks(
+    getValidAttacks(board, position, currentTurn, gameState.lastPawnMove)
+  );
+};
+
+
   const resetValidMoves = () => {
     setValidMoves([]);
     setValidAttacks([]);
   };
 const handleSquareClick = (position: number) => {
-  const { board, selectedPiece, currentTurn, moveHistory } = gameState;
+  const { board, selectedPiece, currentTurn, moveHistory, lastPawnMove } =
+    gameState;
   const piece = board[position];
 
   // If a piece is already selected...
@@ -136,11 +149,26 @@ const handleSquareClick = (position: number) => {
         newBoard = handleCastling(board, selectedPiece, position);
         playSound(soundTheme, "Castle");
       } else {
-        // Handle regular moves
+        // Handle regular moves and en passant
         newBoard = [...board];
 
-        // Check for pawn promotion before making the move
+        // Check for en passant capture
         if (
+          movingPiece.type === "pawn" &&
+          isEnPassantMove(board, selectedPiece, position, lastPawnMove)
+        ) {
+          // Remove the captured pawn
+          const capturedPawnPosition = lastPawnMove.to;
+          const capturedPawn = board[capturedPawnPosition];
+          newBoard[capturedPawnPosition] = null;
+          playSound(soundTheme, "Capture");
+
+          // Move the capturing pawn
+          newBoard[position] = { ...movingPiece, position, hasMoved: true };
+          newBoard[selectedPiece] = null;
+        }
+        // Check for pawn promotion
+        else if (
           movingPiece.type === "pawn" &&
           ((movingPiece.color === "white" && Math.floor(position / 8) === 0) ||
             (movingPiece.color === "black" && Math.floor(position / 8) === 7))
@@ -166,26 +194,26 @@ const handleSquareClick = (position: number) => {
                 timestamp: Date.now(),
               },
             ],
+            lastPawnMove:
+              movingPiece.type === "pawn"
+                ? { from: selectedPiece, to: position, timestamp: Date.now() }
+                : prev.lastPawnMove,
           }));
 
           setPromotionSquare(position);
           resetValidMoves();
           return;
         }
+        // Handle regular moves
+        else {
+          newBoard[position] = { ...movingPiece, position, hasMoved: true };
+          newBoard[selectedPiece] = null;
 
-        // Handle non-promotion moves
-        newBoard[position] = movingPiece;
-        newBoard[selectedPiece] = null;
-
-        if (board[position]) {
-          playSound(soundTheme, "Capture");
-        } else {
-          playSound(soundTheme, "Move");
-        }
-
-        if (newBoard[position]) {
-          newBoard[position]!.position = position;
-          newBoard[position]!.hasMoved = true;
+          if (board[position]) {
+            playSound(soundTheme, "Capture");
+          } else {
+            playSound(soundTheme, "Move");
+          }
         }
       }
 
@@ -193,7 +221,7 @@ const handleSquareClick = (position: number) => {
       const nextTurn = currentTurn === "white" ? "black" : "white";
       let newGameStatus: GameState["gameStatus"] = "playing";
 
-      // Record the move
+      // Record the move and update lastPawnMove if needed
       const move: Move = {
         piece: movingPiece,
         from: selectedPiece,
@@ -222,6 +250,10 @@ const handleSquareClick = (position: number) => {
         currentTurn: nextTurn,
         gameStatus: newGameStatus,
         moveHistory: [...moveHistory, move],
+        lastPawnMove:
+          movingPiece.type === "pawn"
+            ? { from: selectedPiece, to: position, timestamp: Date.now() }
+            : prev.lastPawnMove,
       }));
       resetValidMoves();
       return;
@@ -300,6 +332,7 @@ const handleSquareHover = (position: number | null) => {
       result: "*",
       whitePlayer: "Player",
       blackPlayer: "Computer",
+      lastPawnMove: null,
     });
   };
 
