@@ -1,3 +1,5 @@
+import React from "react";
+import clsx from "clsx";
 import {
   faChessBishop,
   faChessKing,
@@ -6,7 +8,6 @@ import {
   faChessQueen,
   faChessRook,
 } from "@/assets/icons";
-import { Button } from "@/components/ui/button";
 import { useChess } from "@/contexts/ChessContext";
 import { Piece, PieceColor } from "@/utils/chessUtility";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
@@ -14,8 +15,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { CapturedPieces } from "./CapturedPieces";
 import { ChessControls } from "./ChessControls";
-import React from "react";
-import clsx from "clsx";
+import { PawnPromotionDialog } from "./PawnPromotionDialog";
 
 export const Chess = () => {
   const [boardSize, setBoardSize] = useState(0);
@@ -54,17 +54,6 @@ export const Chess = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const getPieceStyle = (color: PieceColor) => ({
-    fontSize: `${boardSize / 12}px`,
-    color: color === "white" ? "white" : "black",
-    textShadow: "0 0 1px rgba(0, 0, 0, 0.5)",
-    filter:
-      color === "white"
-        ? "drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5))"
-        : "drop-shadow(2px 2px 2px rgba(255, 255, 255, 0.3))",
-  });
-
 
   return (
     <div className="bg-background flex flex-col px-4 py-6 w-full">
@@ -112,61 +101,28 @@ export const Chess = () => {
                       const piece = board[index];
 
                       return (
-                        <div
+                        <ChessTile
                           key={index}
-                          onClick={() => handleSquareClick(index)}
-                          onMouseEnter={() => handleSquareHover(index)}
-                          onMouseLeave={() => handleSquareHover(null)}
-                          className={clsx(
-                            // Base square styling
-                            "aspect-square w-full relative cursor-pointer transition-opacity hover:opacity-90",
-                            // Square color
-                            isBlack
-                              ? "bg-gray-300 dark:bg-neutral-700"
-                              : "bg-gray-100 dark:bg-neutral-300",
-                            // Selected piece highlight
-                            selectedPiece === index &&
-                              "ring-4 ring-blue-500 z-10"
-                          )}
-                        >
-                          {/* Highlight layer - only show one based on priority */}
-                          {(() => {
-                            if (validAttacks?.includes(index)) {
-                              return (
-                                <div className="absolute inset-0 bg-red-500/50" />
-                              );
-                            }
-                            if (validMoves?.includes(index)) {
-                              return (
-                                <div className="absolute inset-0 bg-green-500/50" />
-                              );
-                            }
-                            if (selectedPiece === null) {
-                              // Only show previews if no piece is selected
-                              if (previewAttacks?.includes(index)) {
-                                return (
-                                  <div className="absolute inset-0 bg-purple-500/30" />
-                                );
-                              }
-                              if (previewMoves?.includes(index)) {
-                                return (
-                                  <div className="absolute inset-0 bg-yellow-500/30" />
-                                );
-                              }
-                            }
-                            return null;
-                          })()}
-
-                          {/* Piece icon */}
-                          {piece && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <FontAwesomeIcon
-                                icon={getPieceIcon(piece.type)}
-                                style={getPieceStyle(piece.color)}
-                              />
-                            </div>
-                          )}
-                        </div>
+                          piece={piece}
+                          index={index}
+                          isBlack={isBlack}
+                          isSelected={selectedPiece === index}
+                          isHover={hoverPiece === index}
+                          isPreview={
+                            previewMoves.includes(index) ||
+                            previewAttacks.includes(index)
+                          }
+                          handleSquareClick={handleSquareClick}
+                          handleSquareHover={handleSquareHover}
+                          validAttacks={validAttacks}
+                          validMoves={validMoves}
+                          previewAttacks={previewAttacks}
+                          previewMoves={previewMoves}
+                          selectedPiece={selectedPiece}
+                          boardSize={boardSize}
+                          gameStatus={gameStatus}
+                          currentTurn={currentTurn}
+                        />
                       );
                     })}
 
@@ -214,34 +170,54 @@ export const getPieceIcon = (type: Piece["type"]): IconDefinition => {
   };
   return icons[type];
 };
-
-
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-
-
-interface PawnPromotionDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onPromote: (pieceType: Piece["type"]) => void;
-  color: PieceColor;
+interface ChessTileProps {
+  piece: Piece | null;
+  index: number;
+  isBlack: boolean;
+  isSelected: boolean;
+  isHover: boolean;
+  isPreview: boolean;
+  handleSquareClick: (index: number) => void;
+  handleSquareHover: (index: number | null) => void;
+  validAttacks: number[];
+  validMoves: number[];
+  previewAttacks: number[];
+  previewMoves: number[];
+  selectedPiece: number | null;
+  boardSize: number;
+  // Add these new props
+  gameStatus: "playing" | "check" | "checkmate" | "stalemate";
+  currentTurn: PieceColor;
 }
 
-export const PawnPromotionDialog = ({
-  isOpen,
-  onClose,
-  onPromote,
-  color,
-}: PawnPromotionDialogProps) => {
-  const promotionPieces: Piece["type"][] = [
-    "queen",
-    "rook",
-    "bishop",
-    "knight",
-  ];
+export const ChessTile = ({
+  piece,
+  index,
+  isBlack,
+  isSelected,
+  isHover,
+  isPreview,
+  handleSquareClick,
+  handleSquareHover,
+  validAttacks,
+  validMoves,
+  previewAttacks,
+  previewMoves,
+  selectedPiece,
+  boardSize,
+  gameStatus,
+  currentTurn,
+}: ChessTileProps) => {
+  // Check if this square contains the king that is in check
+  const isKingInCheck =
+    piece?.type === "king" &&
+    piece.color === currentTurn &&
+    (gameStatus === "check" || gameStatus === "checkmate");
 
   const getPieceStyle = (color: PieceColor) => ({
-    fontSize: "48px",
+    fontSize: `${boardSize / 12}px`,
     color: color === "white" ? "white" : "black",
+    textShadow: "0 0 1px rgba(0, 0, 0, 0.5)",
     filter:
       color === "white"
         ? "drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5))"
@@ -249,24 +225,53 @@ export const PawnPromotionDialog = ({
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-      <DialogTitle>Choose Promotion Piece</DialogTitle>
-        <div className="grid grid-cols-4 gap-4 bg-gray-100 dark:bg-neutral-800 rounded-lg">
-          {promotionPieces.map((pieceType) => (
-            <button
-              key={pieceType}
-              onClick={() => onPromote(pieceType)}
-              className="p-4 rounded-lg hover:bg-accent flex items-center justify-center transition-colors"
-            >
-              <FontAwesomeIcon
-                icon={getPieceIcon(pieceType)}
-                style={getPieceStyle(color)}
-              />
-            </button>
-          ))}
+    <div
+      onClick={() => handleSquareClick(index)}
+      onMouseEnter={() => handleSquareHover(index)}
+      onMouseLeave={() => handleSquareHover(null)}
+      className={clsx(
+        // Base square styling
+        "aspect-square w-full relative cursor-pointer transition-opacity hover:opacity-90",
+        // Square color
+        isBlack
+          ? "bg-gray-300 dark:bg-neutral-700"
+          : "bg-gray-100 dark:bg-neutral-300",
+        // Selected piece highlight
+        selectedPiece === index && "ring-4 ring-blue-500 z-10"
+      )}
+    >
+      {/* Highlight layers - with check indicator having highest priority */}
+      {isKingInCheck && (
+        <div className="absolute inset-0 bg-red-600/30 animate-pulse ring-4 ring-red-500" />
+      )}
+      {!isKingInCheck &&
+        (() => {
+          if (validAttacks?.includes(index)) {
+            return <div className="absolute inset-0 bg-red-500/50" />;
+          }
+          if (validMoves?.includes(index)) {
+            return <div className="absolute inset-0 bg-green-500/50" />;
+          }
+          if (selectedPiece === null) {
+            if (previewAttacks?.includes(index)) {
+              return <div className="absolute inset-0 bg-purple-500/30" />;
+            }
+            if (previewMoves?.includes(index)) {
+              return <div className="absolute inset-0 bg-yellow-500/30" />;
+            }
+          }
+          return null;
+        })()}
+
+      {/* Piece icon */}
+      {piece && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <FontAwesomeIcon
+            icon={getPieceIcon(piece.type)}
+            style={getPieceStyle(piece.color)}
+          />
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </div>
   );
 };
