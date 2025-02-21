@@ -15,6 +15,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { getComputerMove } from "@/utils/computerLogic";
 
 interface ChessContextType extends GameState {
   handleSquareClick: (position: number) => void;
@@ -31,6 +32,10 @@ interface ChessContextType extends GameState {
   previewAttacks: number[];
   promotionSquare: number | null;
   handlePromotion: (pieceType: Piece["type"]) => void;
+  playComputer: boolean;
+  setPlayComputer: (playComputer: boolean) => void;
+  botDifficulty: "easy" | "medium" | "hard";
+  setBotDifficulty: (botDifficulty: "easy" | "medium" | "hard") => void;
 }
 
 const ChessContext = createContext<ChessContextType | undefined>(undefined);
@@ -54,6 +59,11 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
   const [previewMoves, setPreviewMoves] = useState<number[]>([]);
   const [previewAttacks, setPreviewAttacks] = useState<number[]>([]);
   const [promotionSquare, setPromotionSquare] = useState<number | null>(null);
+  const [botDifficulty, setBotDifficulty] = useLocalStorage(
+    "botDifficulty",
+    "medium"
+  );
+  const [playComputer, setPlayComputer] = useLocalStorage("playComputer", true);
 
   // Convert position number to chess notation
   const toChessNotation = (position: number) => {
@@ -301,6 +311,39 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [gameState.board, gameState.currentTurn]);
 
+  useEffect(() => {
+    // Only make a move if it's computer's turn and game is still playing
+    if (
+      gameState.currentTurn === "black" &&
+      gameState.blackPlayer === "Computer" &&
+      (gameState.gameStatus === "playing" || gameState.gameStatus === "check") &&
+      playComputer
+    ) {
+      const timer = setTimeout(() => {
+        const computerMove = getComputerMove(
+          gameState.board,
+          "black",
+          gameState,
+          botDifficulty
+        );
+
+        if (computerMove) {
+          // First click to select the piece
+          handleSquareClick(computerMove.from);
+
+          // Wait for valid moves to be calculated
+          if (gameState.selectedPiece === computerMove.from) {
+            setTimeout(() => {
+              handleSquareClick(computerMove.to);
+            }, 300);
+          }
+        }
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.currentTurn, gameState.gameStatus, gameState.selectedPiece]); // Add selectedPiece to dependencies
+
   const resetGame = () => {
     setGameState({
       ...gameState,
@@ -383,6 +426,10 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     handleSquareHover,
     handlePromotion,
     promotionSquare,
+    playComputer,
+    setPlayComputer,
+    botDifficulty,
+    setBotDifficulty,
   };
 
   return (

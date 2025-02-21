@@ -142,7 +142,7 @@ export const ChessControls = () => {
               size="sm"
               variant={isRunning ? "destructive" : "default"}
               onClick={() => setIsRunning(!isRunning)}
-              disabled={gameStatus !== "playing"}
+              disabled={gameStatus !== "playing" && gameStatus !== "check"}
             >
               {isRunning ? (
                 <Pause className="w-4 h-4" />
@@ -157,7 +157,7 @@ export const ChessControls = () => {
         </div>
 
         {/* Status Message - Only shown for important states */}
-        {gameStatus !== "playing" && (
+        {/* {gameStatus !== "playing" && ( */}
           <div
             className={`mt-2 text-sm font-medium text-center p-1 rounded-md ${
               gameStatus === "check"
@@ -172,7 +172,7 @@ export const ChessControls = () => {
               <Crown className="inline w-4 h-4 ml-1" />
             )}
           </div>
-        )}
+        {/* )} */}
       </CardContent>
     </Card>
   );
