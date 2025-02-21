@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 
 // Define sound effect types
 type SoundEffect =

@@ -104,7 +104,7 @@ export const ChessControls = () => {
   return (
     <Card className="w-full max-w-lg mx-auto">
       <CardContent className="p-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Left section - Game Time and Turn Count */}
           <div className="flex items-center gap-2 min-w-[100px]">
             <Clock className="w-4 h-4 text-muted-foreground" />
@@ -115,7 +115,7 @@ export const ChessControls = () => {
           </div>
 
           {/* Middle section - Player Times */}
-          <div className="flex-1 grid grid-cols-2 gap-2">
+          <div className="flex-1 flex flex-wrap gap-2">
             {[
               { color: "white", times: whiteTimes },
               { color: "black", times: blackTimes },
@@ -128,7 +128,7 @@ export const ChessControls = () => {
                     : "bg-background"
                 }`}
               >
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-sm gap-2">
                   <span>{capitalize(color)}</span>
                   <span className="font-mono">{formatTime(times.current)}</span>
                 </div>
@@ -151,7 +151,7 @@ export const ChessControls = () => {
               )}
             </Button>
             <Button size="sm" variant="outline" onClick={handleReset}>
-              <RotateCcw className="w-4 h-4" />
+              New Game
             </Button>
           </div>
         </div>

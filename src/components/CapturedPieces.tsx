@@ -1,7 +1,7 @@
 // src/components/Chess/CapturedPieces.tsx
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Piece, PieceColor } from "@/utils/chessUtility";
+import { Piece, PieceColor } from "@/types/chess";
 import { getPieceIcon } from "@/components/Chess";
 
 interface CapturedPiecesProps {

@@ -1,42 +1,20 @@
 import useLocalStorage from "@/hooks/useLocalStorage";
+import { GameState, Move, Piece, PieceColor } from "@/types/chess";
 import {
   createInitialBoard,
-  getValidMoves,
   getValidAttacks,
-  handleCastling,
-  isInCheck,
-  isInCheckmate,
-  isStalemate,
-  isValidMove,
-  Piece,
-  PieceColor,
-  wouldMoveResultInCheck,
-  canPromotePawn,
-  promotePawn,
-  isEnPassantMove,
+  getValidMoves,
 } from "@/utils/chessUtility";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { handleCastling, isEnPassantMove } from "@/utils/specialMoves";
+import { isInCheck, isInCheckmate, isStalemate } from "@/utils/gameState";
 import { playSound } from "@/utils/soundUtility";
-
-export interface Move {
-  piece: Piece;
-  from: number;
-  to: number;
-  captured?: Piece;
-  timestamp: number;
-}
-
-export interface GameState {
-  board: (Piece | null)[];
-  selectedPiece: number | null;
-  currentTurn: PieceColor;
-  gameStatus: "playing" | "check" | "checkmate" | "stalemate";
-  moveHistory: Move[];
-  whitePlayer: string;
-  blackPlayer: string;
-  result: string;
-  lastPawnMove: Move | null;
-}
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface ChessContextType extends GameState {
   handleSquareClick: (position: number) => void;
@@ -77,7 +55,6 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
   const [previewAttacks, setPreviewAttacks] = useState<number[]>([]);
   const [promotionSquare, setPromotionSquare] = useState<number | null>(null);
 
-
   // Convert position number to chess notation
   const toChessNotation = (position: number) => {
     const col = String.fromCharCode(97 + (position % 8)); // a-h
@@ -104,205 +81,208 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
     return `${pieceSymbol}${from}${captureNotation}${to}`;
   };
 
-const updateValidMoves = (
-  board: (Piece | null)[],
-  position: number,
-  currentTurn: PieceColor
-) => {
-  setValidMoves(
-    getValidMoves(board, position, currentTurn, gameState.lastPawnMove)
-  );
-  setValidAttacks(
-    getValidAttacks(board, position, currentTurn, gameState.lastPawnMove)
-  );
-};
-
+  const updateValidMoves = (
+    board: (Piece | null)[],
+    position: number,
+    currentTurn: PieceColor
+  ) => {
+    setValidMoves(
+      getValidMoves(board, position, currentTurn, gameState.lastPawnMove)
+    );
+    setValidAttacks(
+      getValidAttacks(board, position, currentTurn, gameState.lastPawnMove)
+    );
+  };
 
   const resetValidMoves = () => {
     setValidMoves([]);
     setValidAttacks([]);
   };
-const handleSquareClick = (position: number) => {
-  const { board, selectedPiece, currentTurn, moveHistory, lastPawnMove } =
-    gameState;
-  const piece = board[position];
+  const handleSquareClick = (position: number) => {
+    const { board, selectedPiece, currentTurn, moveHistory, lastPawnMove } =
+      gameState;
+    const piece = board[position];
 
-  // If a piece is already selected...
-  if (selectedPiece !== null) {
-    // If clicking the same piece again, deselect it
-    if (position === selectedPiece) {
+    // If a piece is already selected...
+    if (selectedPiece !== null) {
+      // If clicking the same piece again, deselect it
+      if (position === selectedPiece) {
+        setGameState((prev: GameState) => ({ ...prev, selectedPiece: null }));
+        resetValidMoves();
+        return;
+      }
+
+      // If clicking a valid move position, make the move
+      if (validMoves.includes(position)) {
+        const movingPiece = board[selectedPiece];
+        let newBoard: (Piece | null)[];
+
+        // Handle castling moves
+        if (
+          movingPiece.type === "king" &&
+          Math.abs(position - selectedPiece) === 2
+        ) {
+          newBoard = handleCastling(board, selectedPiece, position);
+          playSound(soundTheme, "Castle");
+        } else {
+          // Handle regular moves and en passant
+          newBoard = [...board];
+
+          // Check for en passant capture
+          if (
+            movingPiece.type === "pawn" &&
+            isEnPassantMove(board, selectedPiece, position, lastPawnMove)
+          ) {
+            // Remove the captured pawn
+            const capturedPawnPosition = lastPawnMove.to;
+            const capturedPawn = board[capturedPawnPosition];
+            newBoard[capturedPawnPosition] = null;
+            playSound(soundTheme, "Capture");
+
+            // Move the capturing pawn
+            newBoard[position] = { ...movingPiece, position, hasMoved: true };
+            newBoard[selectedPiece] = null;
+          }
+          // Check for pawn promotion
+          else if (
+            movingPiece.type === "pawn" &&
+            ((movingPiece.color === "white" &&
+              Math.floor(position / 8) === 0) ||
+              (movingPiece.color === "black" && Math.floor(position / 8) === 7))
+          ) {
+            // Make the move but don't change turns yet
+            newBoard[position] = { ...movingPiece, position, hasMoved: true };
+            newBoard[selectedPiece] = null;
+
+            const capturedPiece = board[position];
+
+            // Update game state but stay on same turn
+            setGameState((prev: GameState) => ({
+              ...prev,
+              board: newBoard,
+              selectedPiece: null,
+              moveHistory: [
+                ...moveHistory,
+                {
+                  piece: movingPiece,
+                  from: selectedPiece,
+                  to: position,
+                  captured: capturedPiece || undefined,
+                  timestamp: Date.now(),
+                },
+              ],
+              lastPawnMove:
+                movingPiece.type === "pawn"
+                  ? { from: selectedPiece, to: position, timestamp: Date.now() }
+                  : prev.lastPawnMove,
+            }));
+
+            setPromotionSquare(position);
+            resetValidMoves();
+            return;
+          }
+          // Handle regular moves
+          else {
+            newBoard[position] = { ...movingPiece, position, hasMoved: true };
+            newBoard[selectedPiece] = null;
+
+            if (board[position]) {
+              playSound(soundTheme, "Capture");
+            } else {
+              playSound(soundTheme, "Move");
+            }
+          }
+        }
+
+        const capturedPiece = board[position];
+        const nextTurn = currentTurn === "white" ? "black" : "white";
+        let newGameStatus: GameState["gameStatus"] = "playing";
+
+        // Record the move and update lastPawnMove if needed
+        const move: Move = {
+          piece: movingPiece,
+          from: selectedPiece,
+          to: position,
+          captured: capturedPiece || undefined,
+          timestamp: Date.now(),
+        };
+
+        // Check game status
+        if (isInCheckmate(newBoard, nextTurn)) {
+          newGameStatus = "checkmate";
+          playSound(soundTheme, "Victory");
+        } else if (isInCheck(newBoard, nextTurn)) {
+          newGameStatus = "check";
+          playSound(soundTheme, "Check");
+        } else if (isStalemate(newBoard, nextTurn)) {
+          newGameStatus = "stalemate";
+          playSound(soundTheme, "Draw");
+        }
+
+        // Update game state
+        setGameState((prev: GameState) => ({
+          ...prev,
+          board: newBoard,
+          selectedPiece: null,
+          currentTurn: nextTurn,
+          gameStatus: newGameStatus,
+          moveHistory: [...moveHistory, move],
+          lastPawnMove:
+            movingPiece.type === "pawn"
+              ? { from: selectedPiece, to: position, timestamp: Date.now() }
+              : prev.lastPawnMove,
+        }));
+        resetValidMoves();
+        return;
+      }
+
+      // If clicking a different piece of the same color, select it instead
+      if (piece?.color === currentTurn) {
+        setGameState((prev: GameState) => ({
+          ...prev,
+          selectedPiece: position,
+        }));
+        updateValidMoves(board, position, currentTurn);
+        return;
+      }
+
+      // If clicking anywhere else, deselect the current piece
       setGameState((prev: GameState) => ({ ...prev, selectedPiece: null }));
       resetValidMoves();
       return;
     }
 
-    // If clicking a valid move position, make the move
-    if (validMoves.includes(position)) {
-      const movingPiece = board[selectedPiece];
-      let newBoard: (Piece | null)[];
-
-      // Handle castling moves
-      if (
-        movingPiece.type === "king" &&
-        Math.abs(position - selectedPiece) === 2
-      ) {
-        newBoard = handleCastling(board, selectedPiece, position);
-        playSound(soundTheme, "Castle");
-      } else {
-        // Handle regular moves and en passant
-        newBoard = [...board];
-
-        // Check for en passant capture
-        if (
-          movingPiece.type === "pawn" &&
-          isEnPassantMove(board, selectedPiece, position, lastPawnMove)
-        ) {
-          // Remove the captured pawn
-          const capturedPawnPosition = lastPawnMove.to;
-          const capturedPawn = board[capturedPawnPosition];
-          newBoard[capturedPawnPosition] = null;
-          playSound(soundTheme, "Capture");
-
-          // Move the capturing pawn
-          newBoard[position] = { ...movingPiece, position, hasMoved: true };
-          newBoard[selectedPiece] = null;
-        }
-        // Check for pawn promotion
-        else if (
-          movingPiece.type === "pawn" &&
-          ((movingPiece.color === "white" && Math.floor(position / 8) === 0) ||
-            (movingPiece.color === "black" && Math.floor(position / 8) === 7))
-        ) {
-          // Make the move but don't change turns yet
-          newBoard[position] = { ...movingPiece, position, hasMoved: true };
-          newBoard[selectedPiece] = null;
-
-          const capturedPiece = board[position];
-
-          // Update game state but stay on same turn
-          setGameState((prev: GameState) => ({
-            ...prev,
-            board: newBoard,
-            selectedPiece: null,
-            moveHistory: [
-              ...moveHistory,
-              {
-                piece: movingPiece,
-                from: selectedPiece,
-                to: position,
-                captured: capturedPiece || undefined,
-                timestamp: Date.now(),
-              },
-            ],
-            lastPawnMove:
-              movingPiece.type === "pawn"
-                ? { from: selectedPiece, to: position, timestamp: Date.now() }
-                : prev.lastPawnMove,
-          }));
-
-          setPromotionSquare(position);
-          resetValidMoves();
-          return;
-        }
-        // Handle regular moves
-        else {
-          newBoard[position] = { ...movingPiece, position, hasMoved: true };
-          newBoard[selectedPiece] = null;
-
-          if (board[position]) {
-            playSound(soundTheme, "Capture");
-          } else {
-            playSound(soundTheme, "Move");
-          }
-        }
-      }
-
-      const capturedPiece = board[position];
-      const nextTurn = currentTurn === "white" ? "black" : "white";
-      let newGameStatus: GameState["gameStatus"] = "playing";
-
-      // Record the move and update lastPawnMove if needed
-      const move: Move = {
-        piece: movingPiece,
-        from: selectedPiece,
-        to: position,
-        captured: capturedPiece || undefined,
-        timestamp: Date.now(),
-      };
-
-      // Check game status
-      if (isInCheckmate(newBoard, nextTurn)) {
-        newGameStatus = "checkmate";
-        playSound(soundTheme, "Victory");
-      } else if (isInCheck(newBoard, nextTurn)) {
-        newGameStatus = "check";
-        playSound(soundTheme, "Check");
-      } else if (isStalemate(newBoard, nextTurn)) {
-        newGameStatus = "stalemate";
-        playSound(soundTheme, "Draw");
-      }
-
-      // Update game state
-      setGameState((prev: GameState) => ({
-        ...prev,
-        board: newBoard,
-        selectedPiece: null,
-        currentTurn: nextTurn,
-        gameStatus: newGameStatus,
-        moveHistory: [...moveHistory, move],
-        lastPawnMove:
-          movingPiece.type === "pawn"
-            ? { from: selectedPiece, to: position, timestamp: Date.now() }
-            : prev.lastPawnMove,
-      }));
-      resetValidMoves();
-      return;
-    }
-
-    // If clicking a different piece of the same color, select it instead
+    // If no piece is selected, select a piece of the current turn's color
     if (piece?.color === currentTurn) {
       setGameState((prev: GameState) => ({ ...prev, selectedPiece: position }));
       updateValidMoves(board, position, currentTurn);
+    }
+  };
+
+  const handleSquareHover = (position: number | null) => {
+    const { board, currentTurn } = gameState;
+
+    // Clear previews if mouse leaves a square
+    if (position === null) {
+      setHoverPiece(null);
+      setPreviewMoves([]);
+      setPreviewAttacks([]);
       return;
     }
 
-    // If clicking anywhere else, deselect the current piece
-    setGameState((prev: GameState) => ({ ...prev, selectedPiece: null }));
-    resetValidMoves();
-    return;
-  }
+    const piece = board[position];
 
-  // If no piece is selected, select a piece of the current turn's color
-  if (piece?.color === currentTurn) {
-    setGameState((prev: GameState) => ({ ...prev, selectedPiece: position }));
-    updateValidMoves(board, position, currentTurn);
-  }
-};
-
-const handleSquareHover = (position: number | null) => {
-  const { board, currentTurn } = gameState;
-
-  // Clear previews if mouse leaves a square
-  if (position === null) {
-    setHoverPiece(null);
-    setPreviewMoves([]);
-    setPreviewAttacks([]);
-    return;
-  }
-
-  const piece = board[position];
-
-  // Only show previews for current turn's pieces
-  if (piece?.color === currentTurn) {
-    setHoverPiece(position);
-    setPreviewMoves(getValidMoves(board, position, currentTurn));
-    setPreviewAttacks(getValidAttacks(board, position, currentTurn));
-  } else {
-    setHoverPiece(null);
-    setPreviewMoves([]);
-    setPreviewAttacks([]);
-  }
-};
+    // Only show previews for current turn's pieces
+    if (piece?.color === currentTurn) {
+      setHoverPiece(position);
+      setPreviewMoves(getValidMoves(board, position, currentTurn));
+      setPreviewAttacks(getValidAttacks(board, position, currentTurn));
+    } else {
+      setHoverPiece(null);
+      setPreviewMoves([]);
+      setPreviewAttacks([]);
+    }
+  };
 
   useEffect(() => {
     const { board, currentTurn } = gameState;
@@ -336,58 +316,57 @@ const handleSquareHover = (position: number | null) => {
     });
   };
 
-const handlePromotion = (pieceType: Piece["type"]) => {
-  if (promotionSquare === null) return;
+  const handlePromotion = (pieceType: Piece["type"]) => {
+    if (promotionSquare === null) return;
 
-  // Get the current board state
-  const { board, currentTurn, moveHistory } = gameState;
+    // Get the current board state
+    const { board, currentTurn, moveHistory } = gameState;
 
-  // Create new board with promoted piece
-  const newBoard = [...board];
-  const piece = newBoard[promotionSquare];
+    // Create new board with promoted piece
+    const newBoard = [...board];
+    const piece = newBoard[promotionSquare];
 
-  if (piece && piece.type === "pawn") {
-    newBoard[promotionSquare] = {
-      ...piece,
-      type: pieceType,
+    if (piece && piece.type === "pawn") {
+      newBoard[promotionSquare] = {
+        ...piece,
+        type: pieceType,
+      };
+    }
+
+    const nextTurn = currentTurn === "white" ? "black" : "white";
+    let newGameStatus: GameState["gameStatus"] = "playing";
+
+    // Check game status after promotion
+    if (isInCheckmate(newBoard, nextTurn)) {
+      newGameStatus = "checkmate";
+      playSound(soundTheme, "Victory");
+    } else if (isInCheck(newBoard, nextTurn)) {
+      newGameStatus = "check";
+      playSound(soundTheme, "Check");
+    } else if (isStalemate(newBoard, nextTurn)) {
+      newGameStatus = "stalemate";
+      playSound(soundTheme, "Draw");
+    }
+
+    // Update the last move to include promotion
+    const lastMove = moveHistory[moveHistory.length - 1];
+    const updatedMove = {
+      ...lastMove,
+      promotion: pieceType,
     };
-  }
 
-  const nextTurn = currentTurn === "white" ? "black" : "white";
-  let newGameStatus: GameState["gameStatus"] = "playing";
+    // Update game state
+    setGameState((prev: GameState) => ({
+      ...prev,
+      board: newBoard,
+      currentTurn: nextTurn,
+      gameStatus: newGameStatus,
+      moveHistory: [...moveHistory.slice(0, -1), updatedMove],
+    }));
 
-  // Check game status after promotion
-  if (isInCheckmate(newBoard, nextTurn)) {
-    newGameStatus = "checkmate";
-    playSound(soundTheme, "Victory");
-  } else if (isInCheck(newBoard, nextTurn)) {
-    newGameStatus = "check";
-    playSound(soundTheme, "Check");
-  } else if (isStalemate(newBoard, nextTurn)) {
-    newGameStatus = "stalemate";
-    playSound(soundTheme, "Draw");
-  }
-
-  // Update the last move to include promotion
-  const lastMove = moveHistory[moveHistory.length - 1];
-  const updatedMove = {
-    ...lastMove,
-    promotion: pieceType,
+    setPromotionSquare(null);
+    playSound(soundTheme, "GenericNotify");
   };
-
-  // Update game state
-  setGameState((prev: GameState) => ({
-    ...prev,
-    board: newBoard,
-    currentTurn: nextTurn,
-    gameStatus: newGameStatus,
-    moveHistory: [...moveHistory.slice(0, -1), updatedMove],
-  }));
-
-  setPromotionSquare(null);
-  playSound(soundTheme, "GenericNotify");
-};
-
 
   const value = {
     ...gameState,

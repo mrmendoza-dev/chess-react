@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Piece, PieceColor } from "@/utils/chessUtility";
+import { Piece, PieceColor } from "@/types/chess";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getPieceIcon } from "./Chess";
 

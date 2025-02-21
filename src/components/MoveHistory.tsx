@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Move } from "@/contexts/ChessContext";
+import { Move } from "@/types/chess";
 import { getMoveNotation } from "@/utils/pgnUtility";
 
 export const MoveHistory = ({ moveHistory }: { moveHistory: Move[] }) => {

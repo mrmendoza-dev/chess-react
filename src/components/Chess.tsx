@@ -9,7 +9,7 @@ import {
   faChessRook,
 } from "@/assets/icons";
 import { useChess } from "@/contexts/ChessContext";
-import { Piece, PieceColor } from "@/utils/chessUtility";
+import { Piece, PieceColor } from "@/types/chess";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
@@ -147,7 +147,7 @@ export const Chess = () => {
             <CapturedPieces moveHistory={moveHistory} />
           </div>
         </div>
-        <PawnPromotionDialog
+        <PawnPromotionDialog    
           isOpen={promotionSquare !== null}
           onClose={() => {}} // Dialog shouldn't be closeable
           onPromote={handlePromotion}
@@ -184,7 +184,6 @@ interface ChessTileProps {
   previewMoves: number[];
   selectedPiece: number | null;
   boardSize: number;
-  // Add these new props
   gameStatus: "playing" | "check" | "checkmate" | "stalemate";
   currentTurn: PieceColor;
 }

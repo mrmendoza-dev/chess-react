@@ -1,4 +1,4 @@
-import { GameState, Move } from "@/contexts/ChessContext";
+import { GameState, Move } from "@/types/chess";
 
 interface ChessPosition {
   file: number;
